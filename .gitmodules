@@ -1,0 +1,6 @@
+[submodule "LVGL.Windows/lvgl"]
+	path = LVGL.Windows/lvgl
+	url = https://github.com/lvgl/lvgl
+[submodule "LVGL.Windows/lv_examples"]
+	path = LVGL.Windows/lv_examples
+	url = https://github.com/lvgl/lv_examples
