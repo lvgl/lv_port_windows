@@ -1165,7 +1165,7 @@ lv_font_t* lv_win_gdi_create_font(
     if (FontDCHandle)
     {
         HFONT FontHandle = ::CreateFontW(
-            FontSize,                  // nHeight
+            -FontSize,                  // nHeight
             0,                         // nWidth
             0,                         // nEscapement
             0,                         // nOrientation
@@ -1200,7 +1200,7 @@ lv_font_t* lv_win_gdi_create_font(
     if (SymbolFontDCHandle)
     {
         HFONT SymbolFontHandle = ::CreateFontW(
-            FontSize,                  // nHeight
+            -FontSize,                  // nHeight
             0,                         // nWidth
             0,                         // nEscapement
             0,                         // nOrientation
@@ -1712,22 +1712,22 @@ bool win_hal_init(
 
     lv_font_t* font_small = lv_win_gdi_create_font(
         g_WindowHandle,
-        12 * LV_DPI / USER_DEFAULT_SCREEN_DPI,
+        12,
         font_name);
 
     lv_font_t* font_normal = lv_win_gdi_create_font(
         g_WindowHandle,
-        16 * LV_DPI / USER_DEFAULT_SCREEN_DPI,
+        16,
         font_name);
 
     lv_font_t* font_subtitle = lv_win_gdi_create_font(
         g_WindowHandle,
-        20 * LV_DPI / USER_DEFAULT_SCREEN_DPI,
+        20,
         font_name);
 
     lv_font_t* font_title = lv_win_gdi_create_font(
         g_WindowHandle,
-        24 * LV_DPI / USER_DEFAULT_SCREEN_DPI,
+        24,
         font_name);
 
     ::lv_theme_set_act(::lv_theme_material_init(
