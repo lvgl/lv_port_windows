@@ -12,6 +12,9 @@
     <ClInclude Include="LVGL.Windows.SymbolFont.h">
       <Filter>LVGL.Windows</Filter>
     </ClInclude>
+    <ClInclude Include="LVGL.Windows.FontAwesome5Free.h">
+      <Filter>LVGL.Windows.FontAwesome5Free</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LVGL.Windows.Desktop.cpp" />
@@ -21,10 +24,16 @@
     <ClCompile Include="LVGL.Windows.SymbolFont.cpp">
       <Filter>LVGL.Windows</Filter>
     </ClCompile>
+    <ClCompile Include="LVGL.Windows.FontAwesome5Free.c">
+      <Filter>LVGL.Windows.FontAwesome5Free</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="LVGL.Windows">
       <UniqueIdentifier>{ddee68e6-b582-4a67-a5d2-cd2d172e40a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LVGL.Windows.FontAwesome5Free">
+      <UniqueIdentifier>{9ef5e399-8b29-4abd-9003-59f7ba55706a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -32,5 +41,10 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="LVGL.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="LVGL.Windows.FontAwesome5Free.ttf">
+      <Filter>LVGL.Windows.FontAwesome5Free</Filter>
+    </Font>
   </ItemGroup>
 </Project>
