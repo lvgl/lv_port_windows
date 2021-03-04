@@ -16,6 +16,8 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="LVGL.Resource.FontAwesome5Free.h" />
+    <ClInclude Include="LVGL.Resource.FontAwesome5FreeLVGL.h" />
     <ClInclude Include="lvgl\lvgl.h" />
     <ClInclude Include="lvgl\lv_conf_template.h" />
     <ClInclude Include="lvgl\src\lvgl.h" />
@@ -114,6 +116,8 @@
     <ClInclude Include="lv_conf.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="LVGL.Resource.FontAwesome5Free.c" />
+    <ClCompile Include="LVGL.Resource.FontAwesome5FreeLVGL.c" />
     <ClCompile Include="lvgl\src\lv_core\lv_disp.c" />
     <ClCompile Include="lvgl\src\lv_core\lv_group.c" />
     <ClCompile Include="lvgl\src\lv_core\lv_indev.c" />
@@ -382,6 +386,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="LVGL.Windows.props" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="LVGL.Resource.FontAwesome5Free.ttf" />
+    <Font Include="LVGL.Resource.FontAwesome5FreeLVGL.ttf" />
   </ItemGroup>
   <Import Project="..\Mile.Project\Mile.Project.Cpp.targets" />
 </Project>

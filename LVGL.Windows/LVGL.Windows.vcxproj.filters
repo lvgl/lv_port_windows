@@ -287,6 +287,12 @@
       <Filter>lvgl\src</Filter>
     </ClInclude>
     <ClInclude Include="lv_conf.h" />
+    <ClInclude Include="LVGL.Resource.FontAwesome5Free.h">
+      <Filter>LVGL.Resource.FontAwesome5Free</Filter>
+    </ClInclude>
+    <ClInclude Include="LVGL.Resource.FontAwesome5FreeLVGL.h">
+      <Filter>LVGL.Resource.FontAwesome5FreeLVGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lvgl\src\lv_core\lv_disp.c">
@@ -622,6 +628,12 @@
     <ClCompile Include="lvgl\src\lv_widgets\lv_win.c">
       <Filter>lvgl\src\lv_widgets</Filter>
     </ClCompile>
+    <ClCompile Include="LVGL.Resource.FontAwesome5Free.c">
+      <Filter>LVGL.Resource.FontAwesome5Free</Filter>
+    </ClCompile>
+    <ClCompile Include="LVGL.Resource.FontAwesome5FreeLVGL.c">
+      <Filter>LVGL.Resource.FontAwesome5FreeLVGL</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="lvgl">
@@ -653,6 +665,12 @@
     </Filter>
     <Filter Include="lvgl\src\lv_widgets">
       <UniqueIdentifier>{867d8097-afa3-440c-821d-98bcfe5fe6f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LVGL.Resource.FontAwesome5Free">
+      <UniqueIdentifier>{4fe19ff6-75e3-4093-9d85-9fc02a92a9fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LVGL.Resource.FontAwesome5FreeLVGL">
+      <UniqueIdentifier>{81011523-6013-4c65-b43e-6b3dac1ef893}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -1255,5 +1273,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="LVGL.Windows.props" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="LVGL.Resource.FontAwesome5Free.ttf">
+      <Filter>LVGL.Resource.FontAwesome5Free</Filter>
+    </Font>
+    <Font Include="LVGL.Resource.FontAwesome5FreeLVGL.ttf">
+      <Filter>LVGL.Resource.FontAwesome5FreeLVGL</Filter>
+    </Font>
   </ItemGroup>
 </Project>

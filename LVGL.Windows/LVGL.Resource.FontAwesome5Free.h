@@ -1,6 +1,6 @@
 ﻿/*
  * PROJECT:   LVGL ported to Windows
- * FILE:      LVGL.Windows.FontAwesome5Free.h
+ * FILE:      LVGL.Resource.FontAwesome5Free.h
  * PURPOSE:   Definition for embedded resource - Font Awesome 5 Free
  *
  * LICENSE:   The MIT License
@@ -8,8 +8,8 @@
  * DEVELOPER: Mouri_Naruto (Mouri_Naruto AT Outlook.com)
  */
 
-#ifndef LVGL_WINDOWS_FONT_AWESOME_5_FREE
-#define LVGL_WINDOWS_FONT_AWESOME_5_FREE
+#ifndef LVGL_RESOURCE_FONT_AWESOME_5_FREE
+#define LVGL_RESOURCE_FONT_AWESOME_5_FREE
 
 #include <stddef.h>
 #include <stdint.h>
@@ -37,4 +37,4 @@ EXTERN_C const size_t LvglFontAwesome5FreeFontResourceSize;
 */
 EXTERN_C const wchar_t* LvglFontAwesome5FreeFontName;
 
-#endif // !LVGL_WINDOWS_FONT_AWESOME_5_FREE
+#endif // !LVGL_RESOURCE_FONT_AWESOME_5_FREE

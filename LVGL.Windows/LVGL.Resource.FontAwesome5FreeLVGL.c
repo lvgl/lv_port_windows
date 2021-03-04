@@ -1,6 +1,6 @@
 ﻿/*
  * PROJECT:   LVGL ported to Windows
- * FILE:      LVGL.Windows.FontAwesome5FreeLVGL.c
+ * FILE:      LVGL.Resource.FontAwesome5FreeLVGL.c
  * PURPOSE:   Implementation for embedded resource - Font Awesome 5 Free LVGL
  *
  * LICENSE:   The MIT License
@@ -8,7 +8,7 @@
  * DEVELOPER: Mouri_Naruto (Mouri_Naruto AT Outlook.com)
  */
 
-#include "LVGL.Windows.FontAwesome5FreeLVGL.h"
+#include "LVGL.Resource.FontAwesome5FreeLVGL.h"
 
 static const uint8_t FontAwesome5FreeLvglFontResource[] =
 {
