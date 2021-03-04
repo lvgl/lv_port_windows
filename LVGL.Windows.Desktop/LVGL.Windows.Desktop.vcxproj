@@ -23,12 +23,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LVGL.Windows.h" />
+    <ClInclude Include="LVGL.Windows.SymbolFont.h" />
     <ClInclude Include="Mile.Project.Properties.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LVGL.Windows.cpp" />
     <ClCompile Include="LVGL.Windows.Desktop.cpp" />
+    <ClCompile Include="LVGL.Windows.SymbolFont.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="LVGL.Windows.Desktop.rc" />
