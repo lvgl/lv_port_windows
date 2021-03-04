@@ -316,7 +316,7 @@ lv_font_t* lv_win_gdi_create_font(
             FALSE,                     // bItalic
             FALSE,                     // bUnderline
             0,                         // cStrikeOut
-            ANSI_CHARSET,              // nCharSet
+            DEFAULT_CHARSET,           // nCharSet
             OUT_DEFAULT_PRECIS,        // nOutPrecision
             CLIP_DEFAULT_PRECIS,       // nClipPrecision
             CLEARTYPE_NATURAL_QUALITY, // nQuality
@@ -351,7 +351,7 @@ lv_font_t* lv_win_gdi_create_font(
             FALSE,                     // bItalic
             FALSE,                     // bUnderline
             0,                         // cStrikeOut
-            ANSI_CHARSET,              // nCharSet
+            DEFAULT_CHARSET,           // nCharSet
             OUT_DEFAULT_PRECIS,        // nOutPrecision
             CLIP_DEFAULT_PRECIS,       // nClipPrecision
             CLEARTYPE_NATURAL_QUALITY, // nQuality
@@ -846,7 +846,7 @@ bool win_hal_init(
     ::LvglLoadSymbolFont();
 
 
-    wchar_t font_name[] = L"Segoe UI";
+    wchar_t font_name[] = L""; //L"Segoe UI";
 
     lv_font_t* font_small = lv_win_gdi_create_font(
         g_WindowHandle,
