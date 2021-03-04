@@ -23,6 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LVGL.Windows.FontAwesome5Free.h" />
+    <ClInclude Include="LVGL.Windows.FontAwesome5FreeLVGL.h" />
     <ClInclude Include="LVGL.Windows.h" />
     <ClInclude Include="LVGL.Windows.SymbolFont.h" />
     <ClInclude Include="Mile.Project.Properties.h" />
@@ -32,6 +33,7 @@
     <ClCompile Include="LVGL.Windows.cpp" />
     <ClCompile Include="LVGL.Windows.Desktop.cpp" />
     <ClCompile Include="LVGL.Windows.FontAwesome5Free.c" />
+    <ClCompile Include="LVGL.Windows.FontAwesome5FreeLVGL.c" />
     <ClCompile Include="LVGL.Windows.SymbolFont.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Font Include="LVGL.Windows.FontAwesome5Free.ttf" />
+    <Font Include="LVGL.Windows.FontAwesome5FreeLVGL.ttf" />
   </ItemGroup>
   <Import Project="..\Mile.Project\Mile.Project.Cpp.targets" />
 </Project>

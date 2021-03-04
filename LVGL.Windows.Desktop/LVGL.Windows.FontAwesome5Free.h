@@ -1,7 +1,7 @@
 ﻿/*
  * PROJECT:   LVGL ported to Windows
- * FILE:      LVGL.Windows.SymbolFont.h
- * PURPOSE:   Definition for embedded font resource - Font Awesome 5 Free
+ * FILE:      LVGL.Windows.FontAwesome5Free.h
+ * PURPOSE:   Definition for embedded resource - Font Awesome 5 Free
  *
  * LICENSE:   The MIT License
  *

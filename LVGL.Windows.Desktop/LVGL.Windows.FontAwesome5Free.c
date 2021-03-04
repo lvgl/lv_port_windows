@@ -1,7 +1,7 @@
 ﻿/*
  * PROJECT:   LVGL ported to Windows
  * FILE:      LVGL.Windows.FontAwesome5Free.c
- * PURPOSE:   Implementation for embedded font resource - Font Awesome 5 Free
+ * PURPOSE:   Implementation for embedded resource - Font Awesome 5 Free
  *
  * LICENSE:   The MIT License
  *
