@@ -226,11 +226,6 @@ bool win_gdi_get_glyph_dsc(
 
     GLYPHMETRICS& GlyphMetrics = iterator->second.first;
 
-    /*int face__glyph__bitmap__rows = dsc->TextMetrics.tmHeight;
-    int face__glyph__bitmap__width = dsc->TextMetrics.tmMaxCharWidth;
-    int face__glyph__bitmap_left = 0;
-    int face__glyph__bitmap_top = -dsc->TextMetrics.tmAscent;*/
-
     dsc_out->adv_w = GlyphMetrics.gmCellIncX;
     dsc_out->box_w = static_cast<std::uint16_t>(
         (GlyphMetrics.gmBlackBoxX + 0x0003) & 0xFFFC);
@@ -241,36 +236,6 @@ bool win_gdi_get_glyph_dsc(
     dsc_out->ofs_y = static_cast<std::int16_t>(
         GlyphMetrics.gmptGlyphOrigin.y - GlyphMetrics.gmBlackBoxY);
     dsc_out->bpp = 8;
-
-    /*OUTLINETEXTMETRICW OutlineTextMetrics;
-    if (::GetOutlineTextMetricsW(
-        dsc->FontDCHandle,
-        sizeof(OUTLINETEXTMETRICW),
-        &OutlineTextMetrics))
-    {
-        dsc_out->adv_w = GlyphMetrics.gmCellIncX;
-        dsc_out->box_w = static_cast<std::uint16_t>(
-            (GlyphMetrics.gmBlackBoxX + 0x0003) & ~0x0003);
-        dsc_out->box_h = static_cast<std::uint16_t>(
-            GlyphMetrics.gmBlackBoxY);
-        dsc_out->ofs_x = static_cast<std::int16_t>(
-            GlyphMetrics.gmptGlyphOrigin.x);
-        dsc_out->ofs_y = static_cast<std::int16_t>(
-            GlyphMetrics.gmptGlyphOrigin.y - GlyphMetrics.gmBlackBoxY);
-    }*/
-
-    //dsc_out->adv_w = static_cast<std::uint16_t>(
-    //    GlyphMetrics.gmCellIncX);
-    //dsc_out->box_w = static_cast<std::uint16_t>(
-    //    (face__glyph__bitmap__width + 3) & ~0x0003);
-    //    //face__glyph__bitmap__width);
-    //dsc_out->box_h = static_cast<std::uint16_t>(
-    //    face__glyph__bitmap__rows);
-    //dsc_out->ofs_x = static_cast<std::uint16_t>(
-    //    face__glyph__bitmap_left);
-    //dsc_out->ofs_y = static_cast<std::uint16_t>(
-    //    face__glyph__bitmap_top - face__glyph__bitmap__rows);
-    //dsc_out->bpp = 8;
 
     return true;
 }
@@ -390,36 +355,6 @@ lv_font_t* lv_win_gdi_create_font(
     dsc->FontDCHandle = FontDCHandle;
 
     dsc->SymbolFontDCHandle = SymbolFontDCHandle;
-
-    /*if (::GetTextMetricsW(dsc->FontDCHandle, &dsc->TextMetrics))
-    {
-        font->get_glyph_dsc = ::win_gdi_get_glyph_dsc;
-        font->get_glyph_bitmap = ::win_gdi_get_glyph_bitmap;
-        font->line_height = static_cast<lv_coord_t>(
-            dsc->TextMetrics.tmHeight);
-        font->base_line = static_cast<lv_coord_t>(
-            dsc->TextMetrics.tmDescent);
-        font->subpx = LV_FONT_SUBPX_NONE;
-        font->underline_position = 0;
-        font->underline_thickness = 0;
-        font->dsc = dsc;
-    }
-
-    OUTLINETEXTMETRICW OutlineTextMetrics;
-    if (::GetOutlineTextMetricsW(
-        dsc->FontDCHandle,
-        sizeof(OUTLINETEXTMETRICW),
-        &OutlineTextMetrics))
-    {
-        font->line_height = static_cast<lv_coord_t>(
-            OutlineTextMetrics.otmLineGap - OutlineTextMetrics.otmDescent + OutlineTextMetrics.otmAscent);
-        font->base_line = static_cast<lv_coord_t>(
-            -OutlineTextMetrics.otmDescent);
-        font->underline_position = static_cast<std::int8_t>(
-            OutlineTextMetrics.otmsUnderscorePosition);
-        font->underline_thickness = static_cast<std::int8_t>(
-            OutlineTextMetrics.otmsUnderscoreSize);
-    }*/
 
     if (::GetOutlineTextMetricsW(
         dsc->FontDCHandle,
