@@ -52,7 +52,6 @@ typedef struct lv_font_fmt_win_gdi_dsc_struct
 {
     HDC FontDCHandle;
     HDC SymbolFontDCHandle;
-    //TEXTMETRICW TextMetrics;
     OUTLINETEXTMETRICW OutlineTextMetrics;
     std::map<std::uint32_t, std::pair<GLYPHMETRICS, std::uint8_t*>> GlyphSet;
 } lv_font_fmt_win_gdi_dsc_t;
@@ -71,71 +70,7 @@ void win_gdi_add_glyph(
     TransformationMatrix.eM22.fract = 0;
     TransformationMatrix.eM22.value = 1;
 
-    bool IsSymbol = false;
-    switch (UnicodeLetter)
-    {
-    case 61441:
-    case 61448:
-    case 61451:
-    case 61452:
-    case 61453:
-    case 61457:
-    case 61459:
-    case 61461:
-    case 61465:
-    case 61468:
-    case 61473:
-    case 61478:
-    case 61479:
-    case 61480:
-    case 61502:
-    case 61512:
-    case 61515:
-    case 61516:
-    case 61517:
-    case 61521:
-    case 61522:
-    case 61523:
-    case 61524:
-    case 61543:
-    case 61544:
-    case 61550:
-    case 61552:
-    case 61553:
-    case 61556:
-    case 61559:
-    case 61560:
-    case 61561:
-    case 61563:
-    case 61587:
-    case 61589:
-    case 61636:
-    case 61637:
-    case 61639:
-    case 61671:
-    case 61674:
-    case 61683:
-    case 61724:
-    case 61732:
-    case 61787:
-    case 61931:
-    case 62016:
-    case 62017:
-    case 62018:
-    case 62019:
-    case 62020:
-    case 62087:
-    case 62099:
-    case 62212:
-    case 62189:
-    case 62810:
-    case 63426:
-    case 63650:
-    case 20042:
-        IsSymbol = true;
-    default:
-        break;
-    }
+    HDC ContextDCHandle = dsc->FontDCHandle;
 
     wchar_t InBuffer[2];
     InBuffer[0] = static_cast<wchar_t>(UnicodeLetter);
@@ -146,20 +81,30 @@ void win_gdi_add_glyph(
     OutBuffer[1] = 0;
 
     if (::GetGlyphIndicesW(
-        IsSymbol ? dsc->SymbolFontDCHandle : dsc->FontDCHandle,
+        ContextDCHandle,
         InBuffer,
         1,
         OutBuffer,
-        GGI_MARK_NONEXISTING_GLYPHS) == GDI_ERROR)
+        GGI_MARK_NONEXISTING_GLYPHS) == GDI_ERROR || OutBuffer[0] == 0xffff)
     {
-        return;
+        ContextDCHandle = dsc->SymbolFontDCHandle;
+
+        if (::GetGlyphIndicesW(
+            ContextDCHandle,
+            InBuffer,
+            1,
+            OutBuffer,
+            GGI_MARK_NONEXISTING_GLYPHS) == GDI_ERROR || OutBuffer[0] == 0xffff)
+        {
+            return;
+        }
     }
 
     GLYPHMETRICS GlyphMetrics;
     uint8_t* GlyphBitmap = nullptr;
 
     DWORD Length = ::GetGlyphOutlineW(
-        IsSymbol ? dsc->SymbolFontDCHandle : dsc->FontDCHandle,
+        ContextDCHandle,
         OutBuffer[0],
         GGO_GRAY8_BITMAP | GGO_GLYPH_INDEX,
         &GlyphMetrics,
@@ -174,7 +119,7 @@ void win_gdi_add_glyph(
             if (GlyphBitmap)
             {
                 if (::GetGlyphOutlineW(
-                    IsSymbol ? dsc->SymbolFontDCHandle : dsc->FontDCHandle,
+                    ContextDCHandle,
                     OutBuffer[0],
                     GGO_GRAY8_BITMAP | GGO_GLYPH_INDEX,
                     &GlyphMetrics,

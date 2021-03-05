@@ -10,6 +10,7 @@
 
 #include "LVGL.Windows.SymbolFont.h"
 
+#include <LVGL.Resource.FontAwesome5Free.h>
 #include <LVGL.Resource.FontAwesome5FreeLVGL.h>
 
 EXTERN_C HANDLE WINAPI LvglLoadSymbolFont()
