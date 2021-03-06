@@ -10,11 +10,16 @@
 
 #include "LVGL.Windows.Font.h"
 
-#include <LVGL.Resource.FontAwesome5Free.h>
-#include <LVGL.Resource.FontAwesome5FreeLVGL.h>
+#include "LVGL.Resource.FontAwesome5Free.h"
+#include "LVGL.Resource.FontAwesome5FreeLVGL.h"
 
 #include <cstdint>
 #include <map>
+
+lv_font_t LvglThemeDefaultFontSmall;
+lv_font_t LvglThemeDefaultFontNormal;
+lv_font_t LvglThemeDefaultFontSubtitle;
+lv_font_t LvglThemeDefaultFontTitle;
 
 typedef struct _LVGL_WINDOWS_GDI_FONT_CONTEXT
 {
@@ -194,7 +199,8 @@ static const uint8_t* LvglWindowsGdiFontGetGlyphBitmapCallback(
     return iterator->second.second;
 }
 
-EXTERN_C void WINAPI LvglWindowsGdiFontInitialize()
+EXTERN_C void WINAPI LvglWindowsGdiFontInitialize(
+    _In_opt_ LPCWSTR FontName)
 {
     DWORD NumFonts = 0;
     ::AddFontMemResourceEx(
@@ -202,16 +208,33 @@ EXTERN_C void WINAPI LvglWindowsGdiFontInitialize()
         static_cast<DWORD>(LvglFontAwesome5FreeLvglFontResourceSize),
         nullptr,
         &NumFonts);
+
+    ::LvglWindowsGdiFontCreateFont(
+        &LvglThemeDefaultFontSmall,
+        12,
+        FontName);
+    ::LvglWindowsGdiFontCreateFont(
+        &LvglThemeDefaultFontNormal,
+        16,
+        FontName);
+    ::LvglWindowsGdiFontCreateFont(
+        &LvglThemeDefaultFontSubtitle,
+        20,
+        FontName);
+    ::LvglWindowsGdiFontCreateFont(
+        &LvglThemeDefaultFontTitle,
+        24,
+        FontName);
 }
 
-EXTERN_C lv_font_t* WINAPI LvglWindowsGdiFontCreateFont(
+EXTERN_C BOOL WINAPI LvglWindowsGdiFontCreateFont(
+    _Out_ lv_font_t* FontObject,
     _In_ int FontSize,
     _In_opt_ LPCWSTR FontName)
 {
     HFONT FontHandle = nullptr;
     HFONT SymbolFontHandle = nullptr;
 
-    lv_font_t* Object = nullptr;
     PLVGL_WINDOWS_GDI_FONT_CONTEXT Context = nullptr;
 
     do
@@ -256,19 +279,13 @@ EXTERN_C lv_font_t* WINAPI LvglWindowsGdiFontCreateFont(
             break;
         }
 
-        Object = new lv_font_t();
-        if (!Object)
-        {
-            break;
-        }
-
         Context = new LVGL_WINDOWS_GDI_FONT_CONTEXT();
         if (!Context)
         {
             break;
         }
 
-        Object->dsc = Context;
+        FontObject->dsc = Context;
 
         Context->FontHandle = FontHandle;
         Context->SymbolFontHandle = SymbolFontHandle;
@@ -284,20 +301,20 @@ EXTERN_C lv_font_t* WINAPI LvglWindowsGdiFontCreateFont(
                 sizeof(OUTLINETEXTMETRICW),
                 &Context->OutlineTextMetrics))
             {
-                Object->get_glyph_dsc =
+                FontObject->get_glyph_dsc =
                     ::LvglWindowsGdiFontGetGlyphCallback;
-                Object->get_glyph_bitmap =
+                FontObject->get_glyph_bitmap =
                     ::LvglWindowsGdiFontGetGlyphBitmapCallback;
-                Object->line_height = static_cast<lv_coord_t>(
+                FontObject->line_height = static_cast<lv_coord_t>(
                     Context->OutlineTextMetrics.otmLineGap
                     - Context->OutlineTextMetrics.otmDescent
                     + Context->OutlineTextMetrics.otmAscent);
-                Object->base_line = static_cast<lv_coord_t>(
-                    -Context->OutlineTextMetrics.otmDescent);
-                Object->subpx = LV_FONT_SUBPX_NONE;
-                Object->underline_position = static_cast<std::int8_t>(
+                FontObject->base_line = static_cast<lv_coord_t>(
+                    0 - Context->OutlineTextMetrics.otmDescent);
+                FontObject->subpx = LV_FONT_SUBPX_NONE;
+                FontObject->underline_position = static_cast<std::int8_t>(
                     Context->OutlineTextMetrics.otmsUnderscorePosition);
-                Object->underline_thickness = static_cast<std::int8_t>(
+                FontObject->underline_thickness = static_cast<std::int8_t>(
                     Context->OutlineTextMetrics.otmsUnderscoreSize);
 
                 IsSucceed = true;
@@ -311,18 +328,13 @@ EXTERN_C lv_font_t* WINAPI LvglWindowsGdiFontCreateFont(
             break;
         }
 
-        return Object;
+        return TRUE;
 
     } while (false);
 
     if (Context)
     {
         delete Context;
-    }
-
-    if (Object)
-    {
-        delete Object;
     }
 
     if (SymbolFontHandle)
@@ -335,5 +347,5 @@ EXTERN_C lv_font_t* WINAPI LvglWindowsGdiFontCreateFont(
         ::DeleteObject(FontHandle);
     }
 
-    return nullptr;
+    return FALSE;
 }

@@ -39,17 +39,30 @@
 #endif // !EXTERN_C
 
 /**
- * @brief Initialize the Windows GDI font engine.
+ * @brief Default font for LVGL default theme.
 */
-EXTERN_C void WINAPI LvglWindowsGdiFontInitialize();
+
+LV_FONT_DECLARE(LvglThemeDefaultFontSmall)
+LV_FONT_DECLARE(LvglThemeDefaultFontNormal)
+LV_FONT_DECLARE(LvglThemeDefaultFontSubtitle)
+LV_FONT_DECLARE(LvglThemeDefaultFontTitle)
+
+/**
+ * @brief Initialize the Windows GDI font engine.
+ * @param FontName The default font name.
+*/
+EXTERN_C void WINAPI LvglWindowsGdiFontInitialize(
+    _In_opt_ LPCWSTR FontName);
 
 /**
  * @brief Creates a LVGL font object.
+ * @param FontObject The LVGL font object.
  * @param FontSize The font size.
  * @param FontName The font name.
- * @return The LVGL font object.
+ * @return If succeed, return TRUE, otherwise return FALSE.
 */
-EXTERN_C lv_font_t* WINAPI LvglWindowsGdiFontCreateFont(
+EXTERN_C BOOL WINAPI LvglWindowsGdiFontCreateFont(
+    _Out_ lv_font_t* FontObject,
     _In_ int FontSize,
     _In_opt_ LPCWSTR FontName);
 

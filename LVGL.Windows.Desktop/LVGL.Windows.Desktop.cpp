@@ -13,11 +13,6 @@
 #include <Windows.h>
 #include <windowsx.h>
 
-//#include <d3dkmthk.h>
-//
-//#include <dwmapi.h>
-//#pragma comment(lib,"dwmapi.lib")
-
 #include <cstdint>
 #include <cstring>
 #include <map>
@@ -43,7 +38,7 @@
 #pragma warning(pop)
 #endif
 
-#include "LVGL.Windows.Font.h"
+#include <LVGL.Windows.Font.h>
 
 static HINSTANCE g_InstanceHandle = nullptr;
 static int volatile g_WindowWidth = 0;
@@ -438,35 +433,6 @@ bool win_hal_init(
     enc_drv.read_cb = win_mousewheel_read;
     ::lv_indev_drv_register(&enc_drv);
 
-
-
-    //wchar_t font_name[] = L""; //L"Segoe UI";
-
-    lv_font_t* font_small = ::LvglWindowsGdiFontCreateFont(
-        12,
-        NULL);
-
-    lv_font_t* font_normal = ::LvglWindowsGdiFontCreateFont(
-        16,
-        NULL);
-
-    lv_font_t* font_subtitle = ::LvglWindowsGdiFontCreateFont(
-        20,
-        NULL);
-
-    lv_font_t* font_title = ::LvglWindowsGdiFontCreateFont(
-        24,
-        NULL);
-
-    ::lv_theme_set_act(::lv_theme_material_init(
-        ::lv_color_hex(0x01a2b1),
-        ::lv_color_hex(0x44d1b6),
-        LV_THEME_MATERIAL_FLAG_LIGHT,
-        font_small,
-        font_normal,
-        font_subtitle,
-        font_title));
-
     ::ShowWindow(g_WindowHandle, nShowCmd);
     ::UpdateWindow(g_WindowHandle);
    
@@ -482,7 +448,7 @@ int WINAPI wWinMain(
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    ::LvglWindowsGdiFontInitialize();
+    ::LvglWindowsGdiFontInitialize(nullptr);
 
     ::lv_init();
 
