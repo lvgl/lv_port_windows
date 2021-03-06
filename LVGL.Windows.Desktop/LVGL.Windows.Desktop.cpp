@@ -27,7 +27,7 @@
 #include <vector>
 
 #if _MSC_VER >= 1200
- // Disable compilation warnings.
+// Disable compilation warnings.
 #pragma warning(push)
 // nonstandard extension used : bit field types other than int
 #pragma warning(disable:4214)
@@ -43,287 +43,7 @@
 #pragma warning(pop)
 #endif
 
-#include "LVGL.Windows.SymbolFont.h"
-
-
-
-
-typedef struct lv_font_fmt_win_gdi_dsc_struct
-{
-    HDC FontDCHandle;
-    HDC SymbolFontDCHandle;
-    OUTLINETEXTMETRICW OutlineTextMetrics;
-    std::map<std::uint32_t, std::pair<GLYPHMETRICS, std::uint8_t*>> GlyphSet;
-} lv_font_fmt_win_gdi_dsc_t;
-
-void win_gdi_add_glyph(
-    lv_font_fmt_win_gdi_dsc_t* dsc,
-    std::uint32_t UnicodeLetter)
-{
-    MAT2 TransformationMatrix;
-    TransformationMatrix.eM11.fract = 0;
-    TransformationMatrix.eM11.value = 1;
-    TransformationMatrix.eM12.fract = 0;
-    TransformationMatrix.eM12.value = 0;
-    TransformationMatrix.eM21.fract = 0;
-    TransformationMatrix.eM21.value = 0;
-    TransformationMatrix.eM22.fract = 0;
-    TransformationMatrix.eM22.value = 1;
-
-    HDC ContextDCHandle = dsc->FontDCHandle;
-
-    wchar_t InBuffer[2];
-    InBuffer[0] = static_cast<wchar_t>(UnicodeLetter);
-    InBuffer[1] = L'\0';
-
-    WORD OutBuffer[2];
-    OutBuffer[0] = 0;
-    OutBuffer[1] = 0;
-
-    if (::GetGlyphIndicesW(
-        ContextDCHandle,
-        InBuffer,
-        1,
-        OutBuffer,
-        GGI_MARK_NONEXISTING_GLYPHS) == GDI_ERROR || OutBuffer[0] == 0xffff)
-    {
-        ContextDCHandle = dsc->SymbolFontDCHandle;
-
-        if (::GetGlyphIndicesW(
-            ContextDCHandle,
-            InBuffer,
-            1,
-            OutBuffer,
-            GGI_MARK_NONEXISTING_GLYPHS) == GDI_ERROR || OutBuffer[0] == 0xffff)
-        {
-            return;
-        }
-    }
-
-    GLYPHMETRICS GlyphMetrics;
-    uint8_t* GlyphBitmap = nullptr;
-
-    DWORD Length = ::GetGlyphOutlineW(
-        ContextDCHandle,
-        OutBuffer[0],
-        GGO_GRAY8_BITMAP | GGO_GLYPH_INDEX,
-        &GlyphMetrics,
-        0,
-        nullptr,
-        &TransformationMatrix);
-    if (Length != GDI_ERROR)
-    {
-        if (Length > 0)
-        {
-            GlyphBitmap = new uint8_t[Length];
-            if (GlyphBitmap)
-            {
-                if (::GetGlyphOutlineW(
-                    ContextDCHandle,
-                    OutBuffer[0],
-                    GGO_GRAY8_BITMAP | GGO_GLYPH_INDEX,
-                    &GlyphMetrics,
-                    Length,
-                    GlyphBitmap,
-                    &TransformationMatrix) != GDI_ERROR)
-                {
-                    for (size_t i = 0; i < Length; ++i)
-                    {
-                        GlyphBitmap[i] =
-                            GlyphBitmap[i] == 0x40
-                            ? 0xFF
-                            : GlyphBitmap[i] << 2;
-                    }
-                }
-            }
-        }
-
-        dsc->GlyphSet.emplace(std::make_pair(
-            UnicodeLetter,
-            std::make_pair(GlyphMetrics, GlyphBitmap)));
-    }
-}
-
-bool win_gdi_get_glyph_dsc(
-    const lv_font_t* font,
-    lv_font_glyph_dsc_t* dsc_out,
-    uint32_t unicode_letter,
-    uint32_t unicode_letter_next)
-{
-    unicode_letter_next;
-
-    lv_font_fmt_win_gdi_dsc_t* dsc =
-        reinterpret_cast<lv_font_fmt_win_gdi_dsc_t*>(font->dsc);
-
-    auto iterator = dsc->GlyphSet.find(unicode_letter);
-    if (iterator == dsc->GlyphSet.end())
-    {
-        ::win_gdi_add_glyph(
-            dsc,
-            unicode_letter);
-
-        iterator = dsc->GlyphSet.find(unicode_letter);
-        if (iterator == dsc->GlyphSet.end())
-        {
-            return false;
-        }
-    }
-
-    GLYPHMETRICS& GlyphMetrics = iterator->second.first;
-
-    dsc_out->adv_w = GlyphMetrics.gmCellIncX;
-    dsc_out->box_w = static_cast<std::uint16_t>(
-        (GlyphMetrics.gmBlackBoxX + 0x0003) & 0xFFFC);
-    dsc_out->box_h = static_cast<std::uint16_t>(
-        GlyphMetrics.gmBlackBoxY);
-    dsc_out->ofs_x = static_cast<std::int16_t>(
-        GlyphMetrics.gmptGlyphOrigin.x);
-    dsc_out->ofs_y = static_cast<std::int16_t>(
-        GlyphMetrics.gmptGlyphOrigin.y - GlyphMetrics.gmBlackBoxY);
-    dsc_out->bpp = 8;
-
-    return true;
-}
-
-const uint8_t* win_gdi_get_glyph_bitmap(
-    const lv_font_t* font,
-    uint32_t unicode_letter)
-{
-    lv_font_fmt_win_gdi_dsc_t* dsc =
-        reinterpret_cast<lv_font_fmt_win_gdi_dsc_t*>(font->dsc);
-
-    auto iterator = dsc->GlyphSet.find(unicode_letter);
-    if (iterator == dsc->GlyphSet.end())
-    {
-        ::win_gdi_add_glyph(
-            dsc,
-            unicode_letter);
-
-        iterator = dsc->GlyphSet.find(unicode_letter);
-        if (iterator == dsc->GlyphSet.end())
-        {
-            return nullptr;
-        }
-    }
-
-    return iterator->second.second;
-}
-
-lv_font_t* lv_win_gdi_create_font(
-    _In_ int FontSize,
-    _In_opt_ LPCWSTR FontName)
-{
-    HDC FontDCHandle = ::GetDC(nullptr);
-    if (FontDCHandle)
-    {
-        HFONT FontHandle = ::CreateFontW(
-            -FontSize,                  // nHeight
-            0,                         // nWidth
-            0,                         // nEscapement
-            0,                         // nOrientation
-            FW_NORMAL,                 // nWeight
-            FALSE,                     // bItalic
-            FALSE,                     // bUnderline
-            0,                         // cStrikeOut
-            DEFAULT_CHARSET,           // nCharSet
-            OUT_DEFAULT_PRECIS,        // nOutPrecision
-            CLIP_DEFAULT_PRECIS,       // nClipPrecision
-            CLEARTYPE_NATURAL_QUALITY, // nQuality
-            FF_DONTCARE,  // nPitchAndFamily
-            FontName);
-        if (FontHandle)
-        {
-            ::DeleteObject(::SelectObject(FontDCHandle, FontHandle));
-            ::DeleteObject(FontHandle);
-        }
-        else
-        {
-            ::ReleaseDC(nullptr, FontDCHandle);
-            FontDCHandle = nullptr;
-        }
-    }
-
-    if (!FontDCHandle)
-    {
-        return nullptr;
-    }
-
-    HDC SymbolFontDCHandle = ::GetDC(nullptr);
-    if (SymbolFontDCHandle)
-    {
-        HFONT SymbolFontHandle = ::CreateFontW(
-            -FontSize,                  // nHeight
-            0,                         // nWidth
-            0,                         // nEscapement
-            0,                         // nOrientation
-            FW_NORMAL,                 // nWeight
-            FALSE,                     // bItalic
-            FALSE,                     // bUnderline
-            0,                         // cStrikeOut
-            DEFAULT_CHARSET,           // nCharSet
-            OUT_DEFAULT_PRECIS,        // nOutPrecision
-            CLIP_DEFAULT_PRECIS,       // nClipPrecision
-            CLEARTYPE_NATURAL_QUALITY, // nQuality
-            FF_DONTCARE,  // nPitchAndFamily
-            ::LvglGetSymbolFontName());
-        if (SymbolFontHandle)
-        {
-            ::DeleteObject(::SelectObject(SymbolFontDCHandle, SymbolFontHandle));
-            ::DeleteObject(SymbolFontHandle);
-        }
-        else
-        {
-            ::ReleaseDC(nullptr, SymbolFontDCHandle);
-            SymbolFontDCHandle = nullptr;
-        }
-    }
-
-    if (!SymbolFontDCHandle)
-    {
-        return nullptr;
-    }
-
-    lv_font_t* font = new lv_font_t();
-    if (!font)
-    {
-        return nullptr;
-    }
-
-    lv_font_fmt_win_gdi_dsc_t* dsc = new lv_font_fmt_win_gdi_dsc_t();
-    if (!dsc)
-    {
-        delete font;
-        return nullptr;
-    }
-
-    dsc->FontDCHandle = FontDCHandle;
-
-    dsc->SymbolFontDCHandle = SymbolFontDCHandle;
-
-    if (::GetOutlineTextMetricsW(
-        dsc->FontDCHandle,
-        sizeof(OUTLINETEXTMETRICW),
-        &dsc->OutlineTextMetrics))
-    {
-        font->get_glyph_dsc = ::win_gdi_get_glyph_dsc;
-        font->get_glyph_bitmap = ::win_gdi_get_glyph_bitmap;
-        font->line_height = static_cast<lv_coord_t>(
-            dsc->OutlineTextMetrics.otmLineGap
-            - dsc->OutlineTextMetrics.otmDescent
-            + dsc->OutlineTextMetrics.otmAscent);
-        font->base_line = static_cast<lv_coord_t>(
-            -dsc->OutlineTextMetrics.otmDescent);
-        font->subpx = LV_FONT_SUBPX_NONE;
-        font->underline_position = static_cast<std::int8_t>(
-            dsc->OutlineTextMetrics.otmsUnderscorePosition);
-        font->underline_thickness = static_cast<std::int8_t>(
-            dsc->OutlineTextMetrics.otmsUnderscoreSize);
-        font->dsc = dsc; 
-    }
-
-
-    return font;
-}
+#include "LVGL.Windows.Font.h"
 
 static HINSTANCE g_InstanceHandle = nullptr;
 static int volatile g_WindowWidth = 0;
@@ -719,26 +439,24 @@ bool win_hal_init(
     ::lv_indev_drv_register(&enc_drv);
 
 
-    ::LvglLoadSymbolFont();
 
+    //wchar_t font_name[] = L""; //L"Segoe UI";
 
-    wchar_t font_name[] = L""; //L"Segoe UI";
-
-    lv_font_t* font_small = lv_win_gdi_create_font(
+    lv_font_t* font_small = ::LvglWindowsGdiFontCreateFont(
         12,
-        font_name);
+        NULL);
 
-    lv_font_t* font_normal = lv_win_gdi_create_font(
+    lv_font_t* font_normal = ::LvglWindowsGdiFontCreateFont(
         16,
-        font_name);
+        NULL);
 
-    lv_font_t* font_subtitle = lv_win_gdi_create_font(
+    lv_font_t* font_subtitle = ::LvglWindowsGdiFontCreateFont(
         20,
-        font_name);
+        NULL);
 
-    lv_font_t* font_title = lv_win_gdi_create_font(
+    lv_font_t* font_title = ::LvglWindowsGdiFontCreateFont(
         24,
-        font_name);
+        NULL);
 
     ::lv_theme_set_act(::lv_theme_material_init(
         ::lv_color_hex(0x01a2b1),
@@ -763,6 +481,8 @@ int WINAPI wWinMain(
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
+
+    ::LvglWindowsGdiFontInitialize();
 
     ::lv_init();
 

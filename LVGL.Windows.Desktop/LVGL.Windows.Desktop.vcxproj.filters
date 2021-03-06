@@ -9,7 +9,7 @@
       <Filter>LVGL.Windows</Filter>
     </ClInclude>
     <ClInclude Include="resource.h" />
-    <ClInclude Include="LVGL.Windows.SymbolFont.h">
+    <ClInclude Include="LVGL.Windows.Font.h">
       <Filter>LVGL.Windows</Filter>
     </ClInclude>
   </ItemGroup>
@@ -18,7 +18,7 @@
     <ClCompile Include="LVGL.Windows.cpp">
       <Filter>LVGL.Windows</Filter>
     </ClCompile>
-    <ClCompile Include="LVGL.Windows.SymbolFont.cpp">
+    <ClCompile Include="LVGL.Windows.Font.cpp">
       <Filter>LVGL.Windows</Filter>
     </ClCompile>
   </ItemGroup>
