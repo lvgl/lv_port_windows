@@ -365,10 +365,16 @@ static void win_msg_handler(lv_task_t* param)
     }
 }
 
+#include "resource.h"
+
 bool win_hal_init(
     _In_ HINSTANCE hInstance,
     _In_ int nShowCmd)
 {
+    HICON IconHandle = ::LoadIconW(
+        GetModuleHandleW(nullptr),
+        MAKEINTRESOURCE(IDI_LVGL));
+
     WNDCLASSEXW WindowClass;
 
     WindowClass.cbSize = sizeof(WNDCLASSEX);
@@ -378,12 +384,12 @@ bool win_hal_init(
     WindowClass.cbClsExtra = 0;
     WindowClass.cbWndExtra = 0;
     WindowClass.hInstance = hInstance;
-    WindowClass.hIcon = nullptr;
+    WindowClass.hIcon = IconHandle;
     WindowClass.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
     WindowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
     WindowClass.lpszMenuName = nullptr;
     WindowClass.lpszClassName = L"lv_port_windows";
-    WindowClass.hIconSm = nullptr;
+    WindowClass.hIconSm = IconHandle;
 
     if (!::RegisterClassExW(&WindowClass))
     {
