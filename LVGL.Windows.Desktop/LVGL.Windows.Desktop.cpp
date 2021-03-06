@@ -50,8 +50,6 @@ static HDC g_BufferDCHandle = nullptr;
 static UINT32* g_PixelBuffer = nullptr;
 static SIZE_T g_PixelBufferSize = 0;
 
-static lv_disp_t* lv_windows_disp;
-
 static bool volatile g_MousePressed;
 static LPARAM volatile g_MouseValue = 0;
 
@@ -104,8 +102,6 @@ void lv_create_display_driver(
     int hor_res,
     int ver_res)
 {
-    ::lv_disp_drv_init(disp_drv);
-
     HDC hNewBufferDC = ::LvglCreateFrameBuffer(
         g_WindowHandle,
         hor_res,
@@ -296,20 +292,29 @@ LRESULT CALLBACK WndProc(
             {
                 g_WindowWidth = CurrentWindowWidth;
                 g_WindowHeight = CurrentWindowHeight;
-;
-                lv_disp_buf_t* old_disp_buf = lv_windows_disp->driver.buffer;
 
-                lv_disp_drv_t disp_drv;
-                ::lv_create_display_driver(&disp_drv, g_WindowWidth, g_WindowHeight);
-                ::lv_disp_drv_update(lv_windows_disp, &disp_drv);
-                delete old_disp_buf;
+                lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
+                if (CurrentDisplay)
+                {
+                    ::lv_create_display_driver(
+                        &CurrentDisplay->driver,
+                        g_WindowWidth,
+                        g_WindowHeight);
+                    ::lv_disp_drv_update(
+                        CurrentDisplay,
+                        &CurrentDisplay->driver);
+                }
             }
         }
         break;
     }
     case WM_ERASEBKGND:
     {
-        ::lv_refr_now(lv_windows_disp);
+        lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
+        if (CurrentDisplay)
+        {
+            ::lv_refr_now(CurrentDisplay);
+        }
         return TRUE;
     }
     case WM_DPICHANGED:
@@ -412,8 +417,9 @@ bool win_hal_init(
     g_WindowDPI = ::LvglGetDpiForWindow(g_WindowHandle);
 
     lv_disp_drv_t disp_drv;
+    ::lv_disp_drv_init(&disp_drv);
     ::lv_create_display_driver(&disp_drv, g_WindowWidth, g_WindowHeight);
-    lv_windows_disp = ::lv_disp_drv_register(&disp_drv);
+    ::lv_disp_drv_register(&disp_drv);
 
     lv_indev_drv_t indev_drv;
     ::lv_indev_drv_init(&indev_drv);
