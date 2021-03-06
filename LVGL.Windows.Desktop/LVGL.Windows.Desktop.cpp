@@ -210,11 +210,10 @@ const uint8_t* win_gdi_get_glyph_bitmap(
 }
 
 lv_font_t* lv_win_gdi_create_font(
-    _In_ HWND WindowHandle,
     _In_ int FontSize,
     _In_opt_ LPCWSTR FontName)
 {
-    HDC FontDCHandle = ::GetDC(WindowHandle);
+    HDC FontDCHandle = ::GetDC(nullptr);
     if (FontDCHandle)
     {
         HFONT FontHandle = ::CreateFontW(
@@ -239,7 +238,7 @@ lv_font_t* lv_win_gdi_create_font(
         }
         else
         {
-            ::ReleaseDC(WindowHandle, FontDCHandle);
+            ::ReleaseDC(nullptr, FontDCHandle);
             FontDCHandle = nullptr;
         }
     }
@@ -249,7 +248,7 @@ lv_font_t* lv_win_gdi_create_font(
         return nullptr;
     }
 
-    HDC SymbolFontDCHandle = ::GetDC(WindowHandle);
+    HDC SymbolFontDCHandle = ::GetDC(nullptr);
     if (SymbolFontDCHandle)
     {
         HFONT SymbolFontHandle = ::CreateFontW(
@@ -274,7 +273,7 @@ lv_font_t* lv_win_gdi_create_font(
         }
         else
         {
-            ::ReleaseDC(WindowHandle, SymbolFontDCHandle);
+            ::ReleaseDC(nullptr, SymbolFontDCHandle);
             SymbolFontDCHandle = nullptr;
         }
     }
@@ -370,9 +369,6 @@ void win_drv_flush(
 
             ::ReleaseDC(g_WindowHandle, hWindowDC);
         }
-
-
-        
     }
 
     ::lv_disp_flush_ready(disp_drv);
@@ -729,22 +725,18 @@ bool win_hal_init(
     wchar_t font_name[] = L""; //L"Segoe UI";
 
     lv_font_t* font_small = lv_win_gdi_create_font(
-        g_WindowHandle,
         12,
         font_name);
 
     lv_font_t* font_normal = lv_win_gdi_create_font(
-        g_WindowHandle,
         16,
         font_name);
 
     lv_font_t* font_subtitle = lv_win_gdi_create_font(
-        g_WindowHandle,
         20,
         font_name);
 
     lv_font_t* font_title = lv_win_gdi_create_font(
-        g_WindowHandle,
         24,
         font_name);
 
@@ -779,9 +771,9 @@ int WINAPI wWinMain(
         return -1;
     }
 
-    ::lv_demo_widgets();
+    //::lv_demo_widgets();
     //::lv_demo_keypad_encoder();
-    //::lv_demo_benchmark();
+    ::lv_demo_benchmark();
 
     /*std::thread([]()
     {
