@@ -16,6 +16,12 @@
 #include <cstdint>
 #include <map>
 
+static FIXED ConvertDoubleToFixed(double value)
+{
+    std::uint32_t result = static_cast<std::uint32_t>(value * (1 << 16));
+    return *reinterpret_cast<FIXED*>(&result);
+}
+
 lv_font_t LvglThemeDefaultFontSmall;
 lv_font_t LvglThemeDefaultFontNormal;
 lv_font_t LvglThemeDefaultFontSubtitle;
@@ -27,6 +33,7 @@ typedef struct _LVGL_WINDOWS_GDI_FONT_CONTEXT
     HFONT SymbolFontHandle;
     OUTLINETEXTMETRICW OutlineTextMetrics;
     std::map<std::uint32_t, std::pair<GLYPHMETRICS, std::uint8_t*>> GlyphSet;
+    std::uint32_t DpiValue;
 } LVGL_WINDOWS_GDI_FONT_CONTEXT, * PLVGL_WINDOWS_GDI_FONT_CONTEXT;
 
 static void LvglWindowsGdiFontAddGlyph(
@@ -34,14 +41,14 @@ static void LvglWindowsGdiFontAddGlyph(
     std::uint32_t UnicodeLetter)
 {
     MAT2 TransformationMatrix;
-    TransformationMatrix.eM11.fract = 0;
-    TransformationMatrix.eM11.value = 1;
-    TransformationMatrix.eM12.fract = 0;
-    TransformationMatrix.eM12.value = 0;
-    TransformationMatrix.eM21.fract = 0;
-    TransformationMatrix.eM21.value = 0;
-    TransformationMatrix.eM22.fract = 0;
-    TransformationMatrix.eM22.value = 1;
+    TransformationMatrix.eM11 = ::ConvertDoubleToFixed(
+        static_cast<double>(Context->DpiValue) / USER_DEFAULT_SCREEN_DPI);
+    TransformationMatrix.eM12= ::ConvertDoubleToFixed(
+        0.0);
+    TransformationMatrix.eM21= ::ConvertDoubleToFixed(
+        0.0);
+    TransformationMatrix.eM22 = ::ConvertDoubleToFixed(
+        static_cast<double>(Context->DpiValue) / USER_DEFAULT_SCREEN_DPI);
 
     HDC ContextDCHandle = nullptr;
 
@@ -145,6 +152,19 @@ static bool LvglWindowsGdiFontGetGlyphCallback(
     PLVGL_WINDOWS_GDI_FONT_CONTEXT Context =
         reinterpret_cast<PLVGL_WINDOWS_GDI_FONT_CONTEXT>(font->dsc);
 
+    std::uint32_t DpiValue = LV_DPI;
+    lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
+    if (CurrentDisplay)
+    {
+        DpiValue = CurrentDisplay->driver.dpi;
+    }
+
+    if (DpiValue != Context->DpiValue)
+    {
+        Context->GlyphSet.clear();
+        Context->DpiValue = DpiValue;
+    }
+
     auto iterator = Context->GlyphSet.find(unicode_letter);
     if (iterator == Context->GlyphSet.end())
     {
@@ -181,6 +201,19 @@ static const uint8_t* LvglWindowsGdiFontGetGlyphBitmapCallback(
 {
     PLVGL_WINDOWS_GDI_FONT_CONTEXT Context =
         reinterpret_cast<PLVGL_WINDOWS_GDI_FONT_CONTEXT>(font->dsc);
+
+    std::uint32_t DpiValue = LV_DPI;
+    lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
+    if (CurrentDisplay)
+    {
+        DpiValue = CurrentDisplay->driver.dpi;
+    }
+
+    if (DpiValue != Context->DpiValue)
+    {
+        Context->GlyphSet.clear();
+        Context->DpiValue = DpiValue;
+    }
 
     auto iterator = Context->GlyphSet.find(unicode_letter);
     if (iterator == Context->GlyphSet.end())
@@ -279,6 +312,13 @@ EXTERN_C BOOL WINAPI LvglWindowsGdiFontCreateFont(
             break;
         }
 
+        std::uint32_t DpiValue = LV_DPI;
+        lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
+        if (CurrentDisplay)
+        {
+            DpiValue = CurrentDisplay->driver.dpi;
+        }
+
         Context = new LVGL_WINDOWS_GDI_FONT_CONTEXT();
         if (!Context)
         {
@@ -289,6 +329,8 @@ EXTERN_C BOOL WINAPI LvglWindowsGdiFontCreateFont(
 
         Context->FontHandle = FontHandle;
         Context->SymbolFontHandle = SymbolFontHandle;
+
+        Context->DpiValue = DpiValue;
 
         bool IsSucceed = false;
         HDC ContextDCHandle = ::GetDC(nullptr);
