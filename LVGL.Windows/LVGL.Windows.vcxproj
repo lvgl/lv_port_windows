@@ -18,6 +18,7 @@
   <ItemGroup>
     <ClInclude Include="LVGL.Resource.FontAwesome5Free.h" />
     <ClInclude Include="LVGL.Resource.FontAwesome5FreeLVGL.h" />
+    <ClInclude Include="LVGL.Windows.Font.h" />
     <ClInclude Include="lvgl\lvgl.h" />
     <ClInclude Include="lvgl\lv_conf_template.h" />
     <ClInclude Include="lvgl\src\lvgl.h" />
@@ -118,6 +119,7 @@
   <ItemGroup>
     <ClCompile Include="LVGL.Resource.FontAwesome5Free.c" />
     <ClCompile Include="LVGL.Resource.FontAwesome5FreeLVGL.c" />
+    <ClCompile Include="LVGL.Windows.Font.cpp" />
     <ClCompile Include="lvgl\src\lv_core\lv_disp.c" />
     <ClCompile Include="lvgl\src\lv_core\lv_group.c" />
     <ClCompile Include="lvgl\src\lv_core\lv_indev.c" />

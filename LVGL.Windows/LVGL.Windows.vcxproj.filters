@@ -293,6 +293,9 @@
     <ClInclude Include="LVGL.Resource.FontAwesome5FreeLVGL.h">
       <Filter>LVGL.Resource.FontAwesome5FreeLVGL</Filter>
     </ClInclude>
+    <ClInclude Include="LVGL.Windows.Font.h">
+      <Filter>LVGL.Windows.Font</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lvgl\src\lv_core\lv_disp.c">
@@ -634,6 +637,9 @@
     <ClCompile Include="LVGL.Resource.FontAwesome5FreeLVGL.c">
       <Filter>LVGL.Resource.FontAwesome5FreeLVGL</Filter>
     </ClCompile>
+    <ClCompile Include="LVGL.Windows.Font.cpp">
+      <Filter>LVGL.Windows.Font</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="lvgl">
@@ -671,6 +677,9 @@
     </Filter>
     <Filter Include="LVGL.Resource.FontAwesome5FreeLVGL">
       <UniqueIdentifier>{81011523-6013-4c65-b43e-6b3dac1ef893}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="LVGL.Windows.Font">
+      <UniqueIdentifier>{20a6a3c2-16d9-4766-8d6b-246666ef17b9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
