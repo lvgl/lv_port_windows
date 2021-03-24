@@ -15,6 +15,13 @@ reporting any bugs.
 
 Instructions for cloning, building and running the application are found below.
 
+## Roadmap
+
+- [ ] Accessibility support for grouped LVGL widgets.
+- [ ] Improve the input experience.(For example, IME support.)
+- [ ] Improve the UI performance.
+- [ ] Make a specialized UI demo.
+
 ## Supported Features
 
 This repo is designed for developing a Windows desktop application. If you 
