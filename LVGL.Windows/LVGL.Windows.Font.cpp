@@ -150,13 +150,14 @@ static bool LvglWindowsGdiFontGetGlyphCallback(
     unicode_letter_next;
 
     PLVGL_WINDOWS_GDI_FONT_CONTEXT Context =
-        reinterpret_cast<PLVGL_WINDOWS_GDI_FONT_CONTEXT>(font->dsc);
+        reinterpret_cast<PLVGL_WINDOWS_GDI_FONT_CONTEXT>(
+            const_cast<void*>(font->dsc));
 
-    std::uint32_t DpiValue = LV_DPI;
+    std::uint32_t DpiValue = LV_DPI_DEF;
     lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
     if (CurrentDisplay)
     {
-        DpiValue = CurrentDisplay->driver.dpi;
+        DpiValue = CurrentDisplay->driver->dpi;
     }
 
     if (DpiValue != Context->DpiValue)
@@ -200,13 +201,14 @@ static const uint8_t* LvglWindowsGdiFontGetGlyphBitmapCallback(
     uint32_t unicode_letter)
 {
     PLVGL_WINDOWS_GDI_FONT_CONTEXT Context =
-        reinterpret_cast<PLVGL_WINDOWS_GDI_FONT_CONTEXT>(font->dsc);
+        reinterpret_cast<PLVGL_WINDOWS_GDI_FONT_CONTEXT>(
+            const_cast<void*>(font->dsc));
 
-    std::uint32_t DpiValue = LV_DPI;
+    std::uint32_t DpiValue = LV_DPI_DEF;
     lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
     if (CurrentDisplay)
     {
-        DpiValue = CurrentDisplay->driver.dpi;
+        DpiValue = CurrentDisplay->driver->dpi;
     }
 
     if (DpiValue != Context->DpiValue)
@@ -312,11 +314,11 @@ EXTERN_C BOOL WINAPI LvglWindowsGdiFontCreateFont(
             break;
         }
 
-        std::uint32_t DpiValue = LV_DPI;
+        std::uint32_t DpiValue = LV_DPI_DEF;
         lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
         if (CurrentDisplay)
         {
-            DpiValue = CurrentDisplay->driver.dpi;
+            DpiValue = CurrentDisplay->driver->dpi;
         }
 
         Context = new LVGL_WINDOWS_GDI_FONT_CONTEXT();

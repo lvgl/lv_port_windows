@@ -23,7 +23,7 @@
 #endif
 
 #include "lvgl/lvgl.h"
-#include "lv_examples/lv_examples.h"
+#include "lv_examples/lv_demo.h"
 
 #if _MSC_VER >= 1200
 // Restore compilation warnings.
@@ -42,10 +42,10 @@
  * @brief Default font for LVGL default theme.
 */
 
-LV_FONT_DECLARE(LvglThemeDefaultFontSmall)
-LV_FONT_DECLARE(LvglThemeDefaultFontNormal)
-LV_FONT_DECLARE(LvglThemeDefaultFontSubtitle)
-LV_FONT_DECLARE(LvglThemeDefaultFontTitle)
+extern lv_font_t LvglThemeDefaultFontSmall;
+extern lv_font_t LvglThemeDefaultFontNormal;
+extern lv_font_t LvglThemeDefaultFontSubtitle;
+extern lv_font_t LvglThemeDefaultFontTitle;
 
 /**
  * @brief Initialize the Windows GDI font engine.

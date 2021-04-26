@@ -28,10 +28,12 @@
 #pragma warning(disable:4214)
 // 'conversion' conversion from 'type1' to 'type2', possible loss of data
 #pragma warning(disable:4244)
+// operator 'operator-name': deprecated between enumerations of different types
+#pragma warning(disable:5054)
 #endif
 
 #include "lvgl/lvgl.h"
-#include "lv_examples/lv_examples.h"
+#include "lv_examples/lv_demo.h"
 
 #if _MSC_VER >= 1200
 // Restore compilation warnings.
@@ -111,9 +113,9 @@ void lv_create_display_driver(
 
     ::DeleteDC(g_BufferDCHandle);
     g_BufferDCHandle = hNewBufferDC;
-
-    lv_disp_buf_t* disp_buf = new lv_disp_buf_t();
-    ::lv_disp_buf_init(
+    
+    lv_disp_draw_buf_t* disp_buf = new lv_disp_draw_buf_t();
+    ::lv_disp_draw_buf_init(
         disp_buf,
         g_PixelBuffer,
         nullptr,
@@ -122,7 +124,7 @@ void lv_create_display_driver(
     disp_drv->hor_res = static_cast<lv_coord_t>(hor_res);
     disp_drv->ver_res = static_cast<lv_coord_t>(ver_res);
     disp_drv->flush_cb = ::win_drv_flush;
-    disp_drv->buffer = disp_buf;
+    disp_drv->draw_buf = disp_buf;
     disp_drv->dpi = g_WindowDPI;
     disp_drv->rounder_cb = win_drv_rounder_cb;
 }
@@ -297,12 +299,12 @@ LRESULT CALLBACK WndProc(
                 if (CurrentDisplay)
                 {
                     ::lv_create_display_driver(
-                        &CurrentDisplay->driver,
+                        CurrentDisplay->driver,
                         g_WindowWidth,
                         g_WindowHeight);
                     ::lv_disp_drv_update(
                         CurrentDisplay,
-                        &CurrentDisplay->driver);
+                        CurrentDisplay->driver);
                 }
             }
         }
@@ -347,7 +349,8 @@ LRESULT CALLBACK WndProc(
 
 bool g_WindowQuitSignal = false;
 
-static void win_msg_handler(lv_task_t* param)
+static void win_msg_handler(
+    lv_timer_t* param)
 {
     param;
 
@@ -417,29 +420,29 @@ bool win_hal_init(
         return false;
     }
 
-    ::lv_task_create(win_msg_handler, 0, LV_TASK_PRIO_HIGHEST, nullptr);
+    ::lv_timer_create(win_msg_handler, 0, nullptr);
 
     ::LvglEnableChildWindowDpiMessage(g_WindowHandle);
     g_WindowDPI = ::LvglGetDpiForWindow(g_WindowHandle);
 
-    lv_disp_drv_t disp_drv;
+    static lv_disp_drv_t disp_drv;
     ::lv_disp_drv_init(&disp_drv);
     ::lv_create_display_driver(&disp_drv, g_WindowWidth, g_WindowHeight);
     ::lv_disp_drv_register(&disp_drv);
 
-    lv_indev_drv_t indev_drv;
+    static lv_indev_drv_t indev_drv;
     ::lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = ::win_drv_read;
     ::lv_indev_drv_register(&indev_drv);
 
-    lv_indev_drv_t kb_drv;
+    static lv_indev_drv_t kb_drv;
     lv_indev_drv_init(&kb_drv);
     kb_drv.type = LV_INDEV_TYPE_KEYPAD;
     kb_drv.read_cb = win_kb_read;
     ::lv_indev_drv_register(&kb_drv);
 
-    lv_indev_drv_t enc_drv;
+    static lv_indev_drv_t enc_drv;
     lv_indev_drv_init(&enc_drv);
     enc_drv.type = LV_INDEV_TYPE_ENCODER;
     enc_drv.read_cb = win_mousewheel_read;
