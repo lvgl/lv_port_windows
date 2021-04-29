@@ -414,9 +414,6 @@
     <None Include="lvgl\docs\misc\codeblocks.jpg" />
     <None Include="lvgl\docs\misc\eclipse.jpg" />
     <None Include="lvgl\docs\misc\layers.png" />
-    <None Include="lvgl\docs\misc\list_theme_example.gif" />
-    <None Include="lvgl\docs\misc\list_theme_example.png" />
-    <None Include="lvgl\docs\misc\lv_theme_intro.png" />
     <None Include="lvgl\docs\misc\par_child1.png" />
     <None Include="lvgl\docs\misc\par_child2.png" />
     <None Include="lvgl\docs\misc\par_child3.png" />
@@ -424,13 +421,8 @@
     <None Include="lvgl\docs\misc\qtcreator.jpg" />
     <None Include="lvgl\docs\misc\simple_button_example.gif" />
     <None Include="lvgl\docs\misc\simple_button_example.png" />
-    <None Include="lvgl\docs\misc\slider_example.gif" />
-    <None Include="lvgl\docs\misc\slider_example.png" />
-    <None Include="lvgl\docs\misc\style-built-in.png" />
-    <None Include="lvgl\docs\misc\style-example.png" />
     <None Include="lvgl\docs\misc\symbols.png" />
     <None Include="lvgl\docs\misc\sys.png" />
-    <None Include="lvgl\docs\misc\theme-example.png" />
     <None Include="lvgl\docs\misc\visualstudio.jpg" />
     <None Include="lvgl\docs\overview\animation.md" />
     <None Include="lvgl\docs\overview\coords.md" />
@@ -469,7 +461,6 @@
     <None Include="lvgl\docs\widgets\cont.md" />
     <None Include="lvgl\docs\widgets\cpicker.md" />
     <None Include="lvgl\docs\widgets\dropdown.md" />
-    <None Include="lvgl\docs\widgets\gauge.md" />
     <None Include="lvgl\docs\widgets\img.md" />
     <None Include="lvgl\docs\widgets\imgbtn.md" />
     <None Include="lvgl\docs\widgets\index.md" />
@@ -477,12 +468,9 @@
     <None Include="lvgl\docs\widgets\label.md" />
     <None Include="lvgl\docs\widgets\led.md" />
     <None Include="lvgl\docs\widgets\line.md" />
-    <None Include="lvgl\docs\widgets\linemeter.md" />
     <None Include="lvgl\docs\widgets\list.md" />
     <None Include="lvgl\docs\widgets\msgbox.md" />
     <None Include="lvgl\docs\widgets\obj.md" />
-    <None Include="lvgl\docs\widgets\objmask.md" />
-    <None Include="lvgl\docs\widgets\page.md" />
     <None Include="lvgl\docs\widgets\roller.md" />
     <None Include="lvgl\docs\widgets\slider.md" />
     <None Include="lvgl\docs\widgets\spinbox.md" />
@@ -602,8 +590,9 @@
     <None Include="lvgl\scripts\Doxyfile" />
     <None Include="lvgl\scripts\find_version.sh" />
     <None Include="lvgl\scripts\infer_run.sh" />
-    <None Include="lvgl\scripts\lv_conf_checker.py" />
+    <None Include="lvgl\scripts\lv_conf_internal_gen.py" />
     <None Include="lvgl\scripts\style_api_gen.py" />
+    <None Include="lvgl\scripts\style_props.md" />
     <None Include="lvgl\src\core\lv_core.mk" />
     <None Include="lvgl\src\draw\lv_draw.mk" />
     <None Include="lvgl\src\extra\extra.mk" />
