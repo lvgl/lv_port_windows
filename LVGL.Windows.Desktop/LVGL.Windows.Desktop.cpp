@@ -129,7 +129,7 @@ void lv_create_display_driver(
     disp_drv->rounder_cb = win_drv_rounder_cb;
 }
 
-bool win_drv_read(
+void win_drv_read(
     lv_indev_drv_t* indev_drv,
     lv_indev_data_t* data)
 {
@@ -139,14 +139,13 @@ bool win_drv_read(
         g_MousePressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL);
     data->point.x = GET_X_LPARAM(g_MouseValue);
     data->point.y = GET_Y_LPARAM(g_MouseValue);
-    return false;
 }
 
 std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> key_queue;
 std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> char_queue;
 std::mutex kb_mutex;
 
-bool win_kb_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
+void win_kb_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
 {
     (void)indev_drv;      /*Unused*/
 
@@ -212,11 +211,9 @@ bool win_kb_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
 
         key_queue.pop();
     }
-
-    return false;
 }
 
-bool win_mousewheel_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
+void win_mousewheel_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
 {
     (void)indev_drv;      /*Unused*/
 
@@ -224,8 +221,6 @@ bool win_mousewheel_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
         g_MouseWheelPressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL);
     data->enc_diff = g_MouseWheelValue;
     g_MouseWheelValue = 0;
-
-    return false;       /*No more data to read so return false*/
 }
 
 LRESULT CALLBACK WndProc(
