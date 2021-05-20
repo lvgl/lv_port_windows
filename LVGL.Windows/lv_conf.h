@@ -42,7 +42,7 @@
 #define LV_MEM_CUSTOM      0
 #if LV_MEM_CUSTOM == 0
 /*Size of the memory available for `lv_mem_alloc()` in bytes (>= 2kB)*/
-#  define LV_MEM_SIZE    (64U * 1024U)          /*[bytes]*/
+#  define LV_MEM_SIZE    (1024U * 1024U)          /*[bytes]*/
 
 /*Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too.*/
 #  define LV_MEM_ADR          0     /*0: unused*/
@@ -360,7 +360,7 @@ e.g. "stm32f769xx.h" or "stm32f429xx.h"*/
  *`LV_BIDI_DIR_LTR` Left-to-Right
  *`LV_BIDI_DIR_RTL` Right-to-Left
  *`LV_BIDI_DIR_AUTO` detect texts base direction*/
-#define LV_BIDI_BASE_DIR_DEF  LV_BIDI_DIR_AUTO
+#define LV_BIDI_BASE_DIR_DEF  LV_BASE_DIR_AUTO
 #endif
 
 /*Enable Arabic/Persian processing
