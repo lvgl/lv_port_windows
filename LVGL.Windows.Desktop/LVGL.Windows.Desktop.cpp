@@ -58,6 +58,9 @@ static LPARAM volatile g_MouseValue = 0;
 static bool volatile g_MouseWheelPressed = false;
 static int16_t volatile g_MouseWheelValue = 0;
 
+static bool volatile g_WindowQuitSignal = false;
+static bool volatile g_WindowResizingSignal = false;
+
 void win_drv_flush(
     lv_disp_drv_t* disp_drv,
     const lv_area_t* area,
@@ -231,6 +234,16 @@ LRESULT CALLBACK WndProc(
 {
     switch (uMsg)
     {
+    case WM_CREATE:
+    {
+        RECT WindowRect;
+        ::GetClientRect(hWnd, &WindowRect);
+
+        g_WindowWidth = WindowRect.right - WindowRect.left;
+        g_WindowHeight = WindowRect.bottom - WindowRect.top;
+
+        return 0;
+    }
     case WM_MOUSEMOVE:
     case WM_LBUTTONDOWN:
     case WM_LBUTTONUP:
@@ -290,29 +303,10 @@ LRESULT CALLBACK WndProc(
                 g_WindowWidth = CurrentWindowWidth;
                 g_WindowHeight = CurrentWindowHeight;
 
-                lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
-                if (CurrentDisplay)
-                {
-                    ::lv_create_display_driver(
-                        CurrentDisplay->driver,
-                        g_WindowWidth,
-                        g_WindowHeight);
-                    ::lv_disp_drv_update(
-                        CurrentDisplay,
-                        CurrentDisplay->driver);
-                }
+                g_WindowResizingSignal = true;
             }
         }
         break;
-    }
-    case WM_ERASEBKGND:
-    {
-        lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
-        if (CurrentDisplay)
-        {
-            ::lv_refr_now(CurrentDisplay);
-        }
-        return TRUE;
     }
     case WM_DPICHANGED:
     {
@@ -340,27 +334,6 @@ LRESULT CALLBACK WndProc(
     }
 
     return 0;
-}
-
-bool g_WindowQuitSignal = false;
-
-static void win_msg_handler(
-    lv_timer_t* param)
-{
-    param;
-
-    MSG Message;
-    BOOL Result = ::PeekMessageW(&Message, nullptr, 0, 0, TRUE);
-    if (Result != 0 && Result != -1)
-    {
-        ::TranslateMessage(&Message);
-        ::DispatchMessageW(&Message);
-
-        if (Message.message == WM_QUIT)
-        {
-            g_WindowQuitSignal = true;
-        }
-    }
 }
 
 #include "resource.h"
@@ -415,8 +388,6 @@ bool win_hal_init(
         return false;
     }
 
-    ::lv_timer_create(win_msg_handler, 0, nullptr);
-
     ::LvglEnableChildWindowDpiMessage(g_WindowHandle);
     g_WindowDPI = ::LvglGetDpiForWindow(g_WindowHandle);
 
@@ -449,6 +420,8 @@ bool win_hal_init(
     return true;
 }
 
+#include <thread>
+
 int WINAPI wWinMain(
     _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance,
@@ -471,10 +444,45 @@ int WINAPI wWinMain(
     //::lv_demo_keypad_encoder();
     //::lv_demo_benchmark();
 
-    while (!g_WindowQuitSignal)
+    std::thread([]() {
+
+        while (!g_WindowQuitSignal)
+        {
+            if (g_WindowResizingSignal)
+            {
+                lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
+                if (CurrentDisplay)
+                {
+                    ::lv_create_display_driver(
+                        CurrentDisplay->driver,
+                        g_WindowWidth,
+                        g_WindowHeight);
+                    ::lv_disp_drv_update(
+                        CurrentDisplay,
+                        CurrentDisplay->driver);
+
+                    ::lv_refr_now(CurrentDisplay);
+                }
+
+                g_WindowResizingSignal = false;
+            }
+
+            ::lv_timer_handler();
+            ::Sleep(10);
+        }
+
+    }).detach();
+
+    MSG Message;
+    while (::GetMessageW(&Message, nullptr, 0, 0))
     {
-        ::lv_task_handler();
-        ::Sleep(10);
+        ::TranslateMessage(&Message);
+        ::DispatchMessageW(&Message);
+
+        if (Message.message == WM_QUIT)
+        {
+            g_WindowQuitSignal = true;
+        }
     }
 
     return 0;
