@@ -42,10 +42,7 @@
  * @brief Default font for LVGL default theme.
 */
 
-extern lv_font_t LvglThemeDefaultFontSmall;
-extern lv_font_t LvglThemeDefaultFontNormal;
-extern lv_font_t LvglThemeDefaultFontSubtitle;
-extern lv_font_t LvglThemeDefaultFontTitle;
+extern lv_font_t LvglDefaultFont;
 
 /**
  * @brief Initialize the Windows GDI font engine.

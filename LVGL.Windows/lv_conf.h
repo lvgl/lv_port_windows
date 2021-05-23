@@ -298,13 +298,10 @@ e.g. "stm32f769xx.h" or "stm32f429xx.h"*/
  *You can use these fonts as default font too and they will be available globally.
  *E.g. #define LV_FONT_CUSTOM_DECLARE   LV_FONT_DECLARE(my_font_1) LV_FONT_DECLARE(my_font_2)*/
 #define LV_FONT_CUSTOM_DECLARE \
-    extern lv_font_t LvglThemeDefaultFontSmall; \
-    extern lv_font_t LvglThemeDefaultFontNormal; \
-    extern lv_font_t LvglThemeDefaultFontSubtitle; \
-    extern lv_font_t LvglThemeDefaultFontTitle;
+    extern lv_font_t LvglDefaultFont;
 
 /*Always set a default font*/
-#define LV_FONT_DEFAULT &LvglThemeDefaultFontNormal
+#define LV_FONT_DEFAULT &LvglDefaultFont
 
 /*Enable handling large font and/or fonts with a lot of characters.
  *The limit depends on the font size, font face and bpp.

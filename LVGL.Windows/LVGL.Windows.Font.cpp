@@ -22,10 +22,7 @@ static FIXED ConvertDoubleToFixed(double value)
     return *reinterpret_cast<FIXED*>(&result);
 }
 
-lv_font_t LvglThemeDefaultFontSmall;
-lv_font_t LvglThemeDefaultFontNormal;
-lv_font_t LvglThemeDefaultFontSubtitle;
-lv_font_t LvglThemeDefaultFontTitle;
+lv_font_t LvglDefaultFont;
 
 typedef struct _LVGL_WINDOWS_GDI_FONT_CONTEXT
 {
@@ -245,20 +242,8 @@ EXTERN_C void WINAPI LvglWindowsGdiFontInitialize(
         &NumFonts);
 
     ::LvglWindowsGdiFontCreateFont(
-        &LvglThemeDefaultFontSmall,
-        12,
-        FontName);
-    ::LvglWindowsGdiFontCreateFont(
-        &LvglThemeDefaultFontNormal,
+        &LvglDefaultFont,
         16,
-        FontName);
-    ::LvglWindowsGdiFontCreateFont(
-        &LvglThemeDefaultFontSubtitle,
-        20,
-        FontName);
-    ::LvglWindowsGdiFontCreateFont(
-        &LvglThemeDefaultFontTitle,
-        24,
         FontName);
 }
 
