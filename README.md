@@ -1,5 +1,7 @@
 ﻿# LVGL ported to Windows
 
+![Preview](Preview.gif)
+
 ## Introduction
 
 This is a pre-configured Visual Studio project to try LVGL on a Windows PC. The
