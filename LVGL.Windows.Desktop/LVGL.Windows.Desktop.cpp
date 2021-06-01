@@ -468,7 +468,7 @@ int WINAPI wWinMain(
             }
 
             ::lv_timer_handler();
-            ::Sleep(10);
+            ::Sleep(1);
         }
 
     }).detach();
