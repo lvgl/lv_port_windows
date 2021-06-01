@@ -33,7 +33,7 @@
 #endif
 
 #include "lvgl/lvgl.h"
-#include "lv_examples/lv_demo.h"
+#include "lv_demos/lv_demo.h"
 
 #if _MSC_VER >= 1200
 // Restore compilation warnings.
