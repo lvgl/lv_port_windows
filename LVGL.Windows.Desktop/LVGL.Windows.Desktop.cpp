@@ -396,23 +396,32 @@ bool win_hal_init(
     ::lv_create_display_driver(&disp_drv, g_WindowWidth, g_WindowHeight);
     ::lv_disp_drv_register(&disp_drv);
 
+    lv_group_t* default_group = ::lv_group_create();
+    ::lv_group_set_default(default_group);
+
     static lv_indev_drv_t indev_drv;
     ::lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
     indev_drv.read_cb = ::win_drv_read;
-    ::lv_indev_drv_register(&indev_drv);
+    ::lv_indev_set_group(
+        ::lv_indev_drv_register(&indev_drv),
+        default_group);
 
     static lv_indev_drv_t kb_drv;
     lv_indev_drv_init(&kb_drv);
     kb_drv.type = LV_INDEV_TYPE_KEYPAD;
     kb_drv.read_cb = win_kb_read;
-    ::lv_indev_drv_register(&kb_drv);
+    ::lv_indev_set_group(
+        ::lv_indev_drv_register(&kb_drv),
+        default_group);
 
     static lv_indev_drv_t enc_drv;
     lv_indev_drv_init(&enc_drv);
     enc_drv.type = LV_INDEV_TYPE_ENCODER;
     enc_drv.read_cb = win_mousewheel_read;
-    ::lv_indev_drv_register(&enc_drv);
+    ::lv_indev_set_group(
+        ::lv_indev_drv_register(&enc_drv),
+        default_group);
 
     ::ShowWindow(g_WindowHandle, nShowCmd);
     ::UpdateWindow(g_WindowHandle);
