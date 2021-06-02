@@ -20,8 +20,14 @@ Instructions for cloning, building and running the application are found below.
 ## Roadmap
 
 - [ ] Accessibility support for grouped LVGL widgets.
-- [ ] Improve the input experience.(For example, IME support.)
+- [ ] Improve the input experience.
+  - [ ] IME Support.
+  - [x] Touch input support.
+  - [ ] The desktop style mouse wheel user experience.
 - [ ] Improve the UI performance.
+  - [x] Split LVGL task schedule loop to the separate thread.
+  - [ ] Use Windows GDI and Direct2D to implement the custom drawing interface.
+  - [ ] Implement the DirectWrite as extended font support backend.
 - [ ] Make a specialized UI demo.
 
 ## Supported Features
@@ -40,6 +46,7 @@ wonder to use the LVGL simulator for Windows, please visit
 - [x] Provide the easy way to reference lvgl, lv_examples project for Visual
   Studio.
 - [x] Provide Windows GDI font engine support.
+- [x] Support Windows touch input in the HAL level.
 
 ## Drop the ARM32 Windows support
 
