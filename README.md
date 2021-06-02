@@ -29,6 +29,8 @@ Instructions for cloning, building and running the application are found below.
   - [ ] Use Windows GDI and Direct2D to implement the custom drawing interface.
   - [ ] Implement the DirectWrite as extended font support backend.
 - [ ] Make a specialized UI demo.
+- [ ] Implement the LVGL file system interface.
+- [ ] Implement the Windows resource support for LVGL.
 
 ## Supported Features
 
