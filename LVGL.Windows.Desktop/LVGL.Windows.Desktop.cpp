@@ -148,6 +148,9 @@ std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> key_queue;
 std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> char_queue;
 std::mutex kb_mutex;
 
+static uint16_t volatile g_Utf16HighSurrogate = 0;
+static uint16_t volatile g_Utf16LowSurrogate = 0;
+
 void win_kb_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
 {
     (void)indev_drv;      /*Unused*/
@@ -158,7 +161,7 @@ void win_kb_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
     {
         auto current = char_queue.front();
 
-        data->key = current.first;
+        data->key = ::_lv_txt_unicode_to_encoded(current.first);
         data->state = current.second;
 
         char_queue.pop();
@@ -280,9 +283,44 @@ LRESULT CALLBACK WndProc(
     {
         std::lock_guard guard(kb_mutex);
 
-        char_queue.push(std::make_pair(
-            static_cast<std::uint32_t>(wParam),
-            static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
+        uint16_t Utf16CodePoint = static_cast<std::uint16_t>(wParam);
+
+        if (IS_HIGH_SURROGATE(Utf16CodePoint))
+        {
+            g_Utf16HighSurrogate = Utf16CodePoint;
+        }
+
+        if (IS_LOW_SURROGATE(Utf16CodePoint))
+        {
+            g_Utf16LowSurrogate = Utf16CodePoint;
+        }
+
+        if (g_Utf16HighSurrogate && g_Utf16LowSurrogate)
+        {
+            uint32_t Utf32CodePoint = (g_Utf16LowSurrogate & 0x03FF);
+            Utf32CodePoint += (((g_Utf16HighSurrogate & 0x03FF) + 0x40) << 10);
+
+            char_queue.push(std::make_pair(
+                Utf32CodePoint,
+                static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
+
+            char_queue.push(std::make_pair(
+                Utf32CodePoint,
+                static_cast<lv_indev_state_t>(LV_INDEV_STATE_REL)));
+
+            g_Utf16HighSurrogate = 0;
+            g_Utf16LowSurrogate = 0;
+        }
+        else
+        {
+            char_queue.push(std::make_pair(
+                Utf16CodePoint,
+                static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
+
+            char_queue.push(std::make_pair(
+                Utf16CodePoint,
+                static_cast<lv_indev_state_t>(LV_INDEV_STATE_REL)));
+        }
 
         break;
     }
