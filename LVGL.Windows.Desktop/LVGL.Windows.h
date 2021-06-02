@@ -61,4 +61,48 @@ EXTERN_C UINT WINAPI LvglGetDpiForWindow(
 EXTERN_C BOOL WINAPI LvglEnableChildWindowDpiMessage(
     _In_ HWND WindowHandle);
 
+/**
+ * @brief Registers a window as being touch-capable.
+ * @param hWnd The handle of the window being registered.
+ * @param ulFlags A set of bit flags that specify optional modifications.
+ * @return If the function succeeds, the return value is nonzero. If the
+ *         function fails, the return value is zero.
+ * @remark For more information, see RegisterTouchWindow.
+*/
+EXTERN_C BOOL WINAPI LvglRegisterTouchWindow(
+    _In_ HWND hWnd,
+    _In_ ULONG ulFlags);
+
+/**
+ * @brief Retrieves detailed information about touch inputs associated with a
+ *        particular touch input handle.
+ * @param hTouchInput The touch input handle received in the LPARAM of a touch
+ *                    message. 
+ * @param cInputs The number of structures in the pInputs array.
+ * @param pInputs A pointer to an array of TOUCHINPUT structures to receive
+ *                information about the touch points associated with the
+ *                specified touch input handle.
+ * @param cbSize The size, in bytes, of a single TOUCHINPUT structure.
+ * @return If the function succeeds, the return value is nonzero. If the
+ *         function fails, the return value is zero.
+ * @remark For more information, see GetTouchInputInfo.
+*/
+EXTERN_C BOOL WINAPI LvglGetTouchInputInfo(
+    _In_ HTOUCHINPUT hTouchInput,
+    _In_ UINT cInputs,
+    _Out_ PTOUCHINPUT pInputs,
+    _In_ int cbSize);
+
+/**
+ * @brief Closes a touch input handle, frees process memory associated with it,
+          and invalidates the handle.
+ * @param hTouchInput The touch input handle received in the LPARAM of a touch
+ *                    message. 
+ * @return If the function succeeds, the return value is nonzero. If the
+ *         function fails, the return value is zero.
+ * @remark For more information, see CloseTouchInputHandle.
+*/
+EXTERN_C BOOL WINAPI LvglCloseTouchInputHandle(
+    _In_ HTOUCHINPUT hTouchInput);
+
 #endif // !LVGL_WINDOWS

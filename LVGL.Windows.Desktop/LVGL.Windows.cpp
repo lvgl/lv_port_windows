@@ -171,3 +171,67 @@ EXTERN_C BOOL WINAPI LvglEnableChildWindowDpiMessage(
 
     return pEnableChildWindowDpiMessage(WindowHandle, TRUE);
 }
+
+EXTERN_C BOOL WINAPI LvglRegisterTouchWindow(
+    _In_ HWND hWnd,
+    _In_ ULONG ulFlags)
+{
+    HMODULE ModuleHandle = ::GetModuleHandleW(L"user32.dll");
+    if (!ModuleHandle)
+    {
+        return FALSE;
+    }
+
+    decltype(::RegisterTouchWindow)* pRegisterTouchWindow =
+        reinterpret_cast<decltype(::RegisterTouchWindow)*>(
+            ::GetProcAddress(ModuleHandle, "RegisterTouchWindow"));
+    if (!pRegisterTouchWindow)
+    {
+        return FALSE;
+    }
+
+    return pRegisterTouchWindow(hWnd, ulFlags);
+}
+
+EXTERN_C BOOL WINAPI LvglGetTouchInputInfo(
+    _In_ HTOUCHINPUT hTouchInput,
+    _In_ UINT cInputs,
+    _Out_ PTOUCHINPUT pInputs,
+    _In_ int cbSize)
+{
+    HMODULE ModuleHandle = ::GetModuleHandleW(L"user32.dll");
+    if (!ModuleHandle)
+    {
+        return FALSE;
+    }
+
+    decltype(::GetTouchInputInfo)* pGetTouchInputInfo =
+        reinterpret_cast<decltype(::GetTouchInputInfo)*>(
+            ::GetProcAddress(ModuleHandle, "GetTouchInputInfo"));
+    if (!pGetTouchInputInfo)
+    {
+        return FALSE;
+    }
+
+    return pGetTouchInputInfo(hTouchInput, cInputs, pInputs, cbSize);
+}
+
+EXTERN_C BOOL WINAPI LvglCloseTouchInputHandle(
+    _In_ HTOUCHINPUT hTouchInput)
+{
+    HMODULE ModuleHandle = ::GetModuleHandleW(L"user32.dll");
+    if (!ModuleHandle)
+    {
+        return FALSE;
+    }
+
+    decltype(::CloseTouchInputHandle)* pCloseTouchInputHandle =
+        reinterpret_cast<decltype(::CloseTouchInputHandle)*>(
+            ::GetProcAddress(ModuleHandle, "CloseTouchInputHandle"));
+    if (!pCloseTouchInputHandle)
+    {
+        return FALSE;
+    }
+
+    return pCloseTouchInputHandle(hTouchInput);
+}

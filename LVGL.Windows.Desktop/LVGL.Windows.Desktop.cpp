@@ -291,6 +291,50 @@ LRESULT CALLBACK WndProc(
         g_MouseWheelValue = -(GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA);
         break;
     }
+    case WM_TOUCH:
+    {
+        UINT cInputs = LOWORD(wParam);
+        HTOUCHINPUT hTouchInput = reinterpret_cast<HTOUCHINPUT>(lParam);
+
+        PTOUCHINPUT pInputs = new TOUCHINPUT[cInputs];
+        if (pInputs)
+        {
+            if (::LvglGetTouchInputInfo(
+                hTouchInput,
+                cInputs,
+                pInputs,
+                sizeof(TOUCHINPUT)))
+            {
+                for (UINT i = 0; i < cInputs; ++i)
+                {
+                    POINT Point;
+                    Point.x = TOUCH_COORD_TO_PIXEL(pInputs[i].x);
+                    Point.y = TOUCH_COORD_TO_PIXEL(pInputs[i].y);
+                    if (!::ScreenToClient(hWnd, &Point))
+                    {
+                        continue;
+                    }
+
+                    std::uint16_t x = static_cast<std::uint16_t>(
+                        Point.x & 0xffff);
+                    std::uint16_t y = static_cast<std::uint16_t>(
+                        Point.y & 0xffff);
+
+                    DWORD MousePressedMask =
+                        TOUCHEVENTF_MOVE | TOUCHEVENTF_DOWN;
+
+                    g_MouseValue = (y << 16) | x;
+                    g_MousePressed = (pInputs[i].dwFlags & MousePressedMask);
+                }
+            }
+
+            delete[] pInputs;
+        }
+
+        ::LvglCloseTouchInputHandle(hTouchInput);
+
+        break;
+    }
     case WM_SIZE:
     {
         if (wParam != SIZE_MINIMIZED)
@@ -387,6 +431,8 @@ bool win_hal_init(
     {
         return false;
     }
+
+    ::LvglRegisterTouchWindow(g_WindowHandle, 0);
 
     ::LvglEnableChildWindowDpiMessage(g_WindowHandle);
     g_WindowDPI = ::LvglGetDpiForWindow(g_WindowHandle);
