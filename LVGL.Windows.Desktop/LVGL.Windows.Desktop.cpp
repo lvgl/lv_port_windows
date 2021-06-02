@@ -61,13 +61,20 @@ static int16_t volatile g_MouseWheelValue = 0;
 static bool volatile g_WindowQuitSignal = false;
 static bool volatile g_WindowResizingSignal = false;
 
-void win_drv_flush(
+static uint16_t volatile g_Utf16HighSurrogate = 0;
+static uint16_t volatile g_Utf16LowSurrogate = 0;
+
+std::mutex g_KeyboardMutex;
+std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> g_KeyQueue;
+std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> g_CharQueue;
+
+void LvglDisplayDriverFlushCallback(
     lv_disp_drv_t* disp_drv,
     const lv_area_t* area,
     lv_color_t* color_p)
 {
-    area;
-    color_p;
+    UNREFERENCED_PARAMETER(area);
+    UNREFERENCED_PARAMETER(color_p);
 
     if (::lv_disp_flush_is_last(disp_drv))
     {
@@ -92,7 +99,7 @@ void win_drv_flush(
     ::lv_disp_flush_ready(disp_drv);
 }
 
-void win_drv_rounder_cb(
+void LvglDisplayDriverRounderCallback(
     lv_disp_drv_t* disp_drv,
     lv_area_t* area)
 {
@@ -102,7 +109,7 @@ void win_drv_rounder_cb(
     area->y2 = disp_drv->ver_res - 1;
 }
 
-void lv_create_display_driver(
+void LvglCreateDisplayDriver(
     lv_disp_drv_t* disp_drv,
     int hor_res,
     int ver_res)
@@ -126,17 +133,17 @@ void lv_create_display_driver(
 
     disp_drv->hor_res = static_cast<lv_coord_t>(hor_res);
     disp_drv->ver_res = static_cast<lv_coord_t>(ver_res);
-    disp_drv->flush_cb = ::win_drv_flush;
+    disp_drv->flush_cb = ::LvglDisplayDriverFlushCallback;
     disp_drv->draw_buf = disp_buf;
     disp_drv->dpi = g_WindowDPI;
-    disp_drv->rounder_cb = win_drv_rounder_cb;
+    disp_drv->rounder_cb = ::LvglDisplayDriverRounderCallback;
 }
 
-void win_drv_read(
+void LvglMouseDriverReadCallback(
     lv_indev_drv_t* indev_drv,
     lv_indev_data_t* data)
 {
-    indev_drv;
+    UNREFERENCED_PARAMETER(indev_drv);
 
     data->state = static_cast<lv_indev_state_t>(
         g_MousePressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL);
@@ -144,33 +151,28 @@ void win_drv_read(
     data->point.y = GET_Y_LPARAM(g_MouseValue);
 }
 
-std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> key_queue;
-std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> char_queue;
-std::mutex kb_mutex;
-
-static uint16_t volatile g_Utf16HighSurrogate = 0;
-static uint16_t volatile g_Utf16LowSurrogate = 0;
-
-void win_kb_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
+void LvglKeyboardDriverReadCallback(
+    lv_indev_drv_t* indev_drv,
+    lv_indev_data_t* data)
 {
-    (void)indev_drv;      /*Unused*/
+    UNREFERENCED_PARAMETER(indev_drv);
 
-    std::lock_guard guard(kb_mutex);
+    std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
 
-    if (!char_queue.empty())
+    if (!g_CharQueue.empty())
     {
-        auto current = char_queue.front();
+        auto Current = g_CharQueue.front();
 
-        data->key = ::_lv_txt_unicode_to_encoded(current.first);
-        data->state = current.second;
+        data->key = ::_lv_txt_unicode_to_encoded(Current.first);
+        data->state = Current.second;
 
-        char_queue.pop();
+        g_CharQueue.pop();
     }
-    else if (!key_queue.empty())
+    else if (!g_KeyQueue.empty())
     {
-        auto current = key_queue.front();
+        auto Current = g_KeyQueue.front();
 
-        switch (current.first)
+        switch (Current.first)
         {
         case VK_UP:
             data->key = LV_KEY_UP;
@@ -213,15 +215,17 @@ void win_kb_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
             break;
         }
         
-        data->state = current.second;
+        data->state = Current.second;
 
-        key_queue.pop();
+        g_KeyQueue.pop();
     }
 }
 
-void win_mousewheel_read(lv_indev_drv_t* indev_drv, lv_indev_data_t* data)
+void LvglMousewheelDriverReadCallback(
+    lv_indev_drv_t* indev_drv,
+    lv_indev_data_t* data)
 {
-    (void)indev_drv;      /*Unused*/
+    UNREFERENCED_PARAMETER(indev_drv);
 
     data->state = static_cast<lv_indev_state_t>(
         g_MouseWheelPressed ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL);
@@ -267,9 +271,9 @@ LRESULT CALLBACK WndProc(
     case WM_KEYDOWN:
     case WM_KEYUP:
     {
-        std::lock_guard guard(kb_mutex);
+        std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
 
-        key_queue.push(
+        g_KeyQueue.push(
             std::make_pair(
                 static_cast<std::uint32_t>(wParam),
                 static_cast<lv_indev_state_t>(
@@ -281,7 +285,7 @@ LRESULT CALLBACK WndProc(
     }
     case WM_CHAR:
     {
-        std::lock_guard guard(kb_mutex);
+        std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
 
         uint16_t Utf16CodePoint = static_cast<std::uint16_t>(wParam);
 
@@ -300,11 +304,11 @@ LRESULT CALLBACK WndProc(
             uint32_t Utf32CodePoint = (g_Utf16LowSurrogate & 0x03FF);
             Utf32CodePoint += (((g_Utf16HighSurrogate & 0x03FF) + 0x40) << 10);
 
-            char_queue.push(std::make_pair(
+            g_CharQueue.push(std::make_pair(
                 Utf32CodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
 
-            char_queue.push(std::make_pair(
+            g_CharQueue.push(std::make_pair(
                 Utf32CodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_REL)));
 
@@ -313,11 +317,11 @@ LRESULT CALLBACK WndProc(
         }
         else
         {
-            char_queue.push(std::make_pair(
+            g_CharQueue.push(std::make_pair(
                 Utf16CodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
 
-            char_queue.push(std::make_pair(
+            g_CharQueue.push(std::make_pair(
                 Utf16CodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_REL)));
         }
@@ -420,10 +424,13 @@ LRESULT CALLBACK WndProc(
 
 #include "resource.h"
 
-bool win_hal_init(
+bool LvglWindowsInitialize(
     _In_ HINSTANCE hInstance,
-    _In_ int nShowCmd)
+    _In_ int nShowCmd,
+    _In_opt_ LPCWSTR DefaultFontName)
 {
+    ::LvglWindowsGdiFontInitialize(DefaultFontName);
+
     HICON IconHandle = ::LoadIconW(
         GetModuleHandleW(nullptr),
         MAKEINTRESOURCE(IDI_LVGL));
@@ -477,7 +484,7 @@ bool win_hal_init(
 
     static lv_disp_drv_t disp_drv;
     ::lv_disp_drv_init(&disp_drv);
-    ::lv_create_display_driver(&disp_drv, g_WindowWidth, g_WindowHeight);
+    ::LvglCreateDisplayDriver(&disp_drv, g_WindowWidth, g_WindowHeight);
     ::lv_disp_drv_register(&disp_drv);
 
     lv_group_t* default_group = ::lv_group_create();
@@ -486,7 +493,7 @@ bool win_hal_init(
     static lv_indev_drv_t indev_drv;
     ::lv_indev_drv_init(&indev_drv);
     indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = ::win_drv_read;
+    indev_drv.read_cb = ::LvglMouseDriverReadCallback;
     ::lv_indev_set_group(
         ::lv_indev_drv_register(&indev_drv),
         default_group);
@@ -494,7 +501,7 @@ bool win_hal_init(
     static lv_indev_drv_t kb_drv;
     lv_indev_drv_init(&kb_drv);
     kb_drv.type = LV_INDEV_TYPE_KEYPAD;
-    kb_drv.read_cb = win_kb_read;
+    kb_drv.read_cb = ::LvglKeyboardDriverReadCallback;
     ::lv_indev_set_group(
         ::lv_indev_drv_register(&kb_drv),
         default_group);
@@ -502,7 +509,7 @@ bool win_hal_init(
     static lv_indev_drv_t enc_drv;
     lv_indev_drv_init(&enc_drv);
     enc_drv.type = LV_INDEV_TYPE_ENCODER;
-    enc_drv.read_cb = win_mousewheel_read;
+    enc_drv.read_cb = ::LvglMousewheelDriverReadCallback;
     ::lv_indev_set_group(
         ::lv_indev_drv_register(&enc_drv),
         default_group);
@@ -511,6 +518,51 @@ bool win_hal_init(
     ::UpdateWindow(g_WindowHandle);
    
     return true;
+}
+
+void LvglTaskSchedulerLoop()
+{
+    while (!g_WindowQuitSignal)
+    {
+        if (g_WindowResizingSignal)
+        {
+            lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
+            if (CurrentDisplay)
+            {
+                ::LvglCreateDisplayDriver(
+                    CurrentDisplay->driver,
+                    g_WindowWidth,
+                    g_WindowHeight);
+                ::lv_disp_drv_update(
+                    CurrentDisplay,
+                    CurrentDisplay->driver);
+
+                ::lv_refr_now(CurrentDisplay);
+            }
+
+            g_WindowResizingSignal = false;
+        }
+
+        ::lv_timer_handler();
+        ::Sleep(1);
+    }
+}
+
+int LvglWindowsLoop()
+{
+    MSG Message;
+    while (::GetMessageW(&Message, nullptr, 0, 0))
+    {
+        ::TranslateMessage(&Message);
+        ::DispatchMessageW(&Message);
+
+        if (Message.message == WM_QUIT)
+        {
+            g_WindowQuitSignal = true;
+        }
+    }
+
+    return static_cast<int>(Message.wParam);
 }
 
 #include <thread>
@@ -524,11 +576,12 @@ int WINAPI wWinMain(
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    ::LvglWindowsGdiFontInitialize(nullptr);
-
     ::lv_init();
 
-    if (!win_hal_init(hInstance, nShowCmd))
+    if (!LvglWindowsInitialize(
+        hInstance,
+        nShowCmd,
+        nullptr))
     {
         return -1;
     }
@@ -537,46 +590,7 @@ int WINAPI wWinMain(
     //::lv_demo_keypad_encoder();
     //::lv_demo_benchmark();
 
-    std::thread([]() {
+    std::thread(::LvglTaskSchedulerLoop).detach();
 
-        while (!g_WindowQuitSignal)
-        {
-            if (g_WindowResizingSignal)
-            {
-                lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
-                if (CurrentDisplay)
-                {
-                    ::lv_create_display_driver(
-                        CurrentDisplay->driver,
-                        g_WindowWidth,
-                        g_WindowHeight);
-                    ::lv_disp_drv_update(
-                        CurrentDisplay,
-                        CurrentDisplay->driver);
-
-                    ::lv_refr_now(CurrentDisplay);
-                }
-
-                g_WindowResizingSignal = false;
-            }
-
-            ::lv_timer_handler();
-            ::Sleep(1);
-        }
-
-    }).detach();
-
-    MSG Message;
-    while (::GetMessageW(&Message, nullptr, 0, 0))
-    {
-        ::TranslateMessage(&Message);
-        ::DispatchMessageW(&Message);
-
-        if (Message.message == WM_QUIT)
-        {
-            g_WindowQuitSignal = true;
-        }
-    }
-
-    return 0;
+    return ::LvglWindowsLoop();
 }
