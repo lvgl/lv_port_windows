@@ -13,6 +13,8 @@
 #include <Windows.h>
 #include <windowsx.h>
 
+#pragma comment(lib, "Imm32.lib")
+
 #include <cstdint>
 #include <cstring>
 #include <map>
@@ -61,12 +63,12 @@ static int16_t volatile g_MouseWheelValue = 0;
 static bool volatile g_WindowQuitSignal = false;
 static bool volatile g_WindowResizingSignal = false;
 
-static uint16_t volatile g_Utf16HighSurrogate = 0;
-static uint16_t volatile g_Utf16LowSurrogate = 0;
-
 std::mutex g_KeyboardMutex;
 std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> g_KeyQueue;
 std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> g_CharQueue;
+static uint16_t volatile g_Utf16HighSurrogate = 0;
+static uint16_t volatile g_Utf16LowSurrogate = 0;
+static lv_group_t* volatile g_DefaultGroup = nullptr;
 
 void LvglDisplayDriverFlushCallback(
     lv_disp_drv_t* disp_drv,
@@ -287,46 +289,99 @@ LRESULT CALLBACK WndProc(
     {
         std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
 
-        uint16_t Utf16CodePoint = static_cast<std::uint16_t>(wParam);
+        uint16_t RawCodePoint = static_cast<std::uint16_t>(wParam);
 
-        if (IS_HIGH_SURROGATE(Utf16CodePoint))
+        if (RawCodePoint >= 0x20 && RawCodePoint != 0x7F)
         {
-            g_Utf16HighSurrogate = Utf16CodePoint;
-        }
+            if (IS_HIGH_SURROGATE(RawCodePoint))
+            {
+                g_Utf16HighSurrogate = RawCodePoint;
+            }
+            else if (IS_LOW_SURROGATE(RawCodePoint))
+            {
+                g_Utf16LowSurrogate = RawCodePoint;
+            }
 
-        if (IS_LOW_SURROGATE(Utf16CodePoint))
-        {
-            g_Utf16LowSurrogate = Utf16CodePoint;
-        }
+            uint32_t CodePoint = RawCodePoint;
 
-        if (g_Utf16HighSurrogate && g_Utf16LowSurrogate)
-        {
-            uint32_t Utf32CodePoint = (g_Utf16LowSurrogate & 0x03FF);
-            Utf32CodePoint += (((g_Utf16HighSurrogate & 0x03FF) + 0x40) << 10);
+            if (g_Utf16HighSurrogate && g_Utf16LowSurrogate)
+            {
+                CodePoint = (g_Utf16LowSurrogate & 0x03FF);
+                CodePoint += (((g_Utf16HighSurrogate & 0x03FF) + 0x40) << 10);
+
+                g_Utf16HighSurrogate = 0;
+                g_Utf16LowSurrogate = 0;
+            }
 
             g_CharQueue.push(std::make_pair(
-                Utf32CodePoint,
+                CodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
 
             g_CharQueue.push(std::make_pair(
-                Utf32CodePoint,
-                static_cast<lv_indev_state_t>(LV_INDEV_STATE_REL)));
-
-            g_Utf16HighSurrogate = 0;
-            g_Utf16LowSurrogate = 0;
-        }
-        else
-        {
-            g_CharQueue.push(std::make_pair(
-                Utf16CodePoint,
-                static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
-
-            g_CharQueue.push(std::make_pair(
-                Utf16CodePoint,
+                CodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_REL)));
         }
 
         break;
+    }
+    case WM_IME_SETCONTEXT:
+    {
+        if (wParam == TRUE)
+        {
+            HIMC hInputMethodContext = ::ImmGetContext(hWnd);
+            if (hInputMethodContext)
+            {
+                ::ImmAssociateContext(hWnd, hInputMethodContext);
+                ::ImmReleaseContext(hWnd, hInputMethodContext);
+            }
+        }
+
+        return ::DefWindowProcW(hWnd, uMsg, wParam, wParam);
+    }
+    case WM_IME_STARTCOMPOSITION:
+    {
+        HIMC hInputMethodContext = ::ImmGetContext(hWnd);
+        if (hInputMethodContext)
+        {
+            lv_obj_t* TextareaObject = nullptr;
+            lv_obj_t* FocusedObject = ::lv_group_get_focused(g_DefaultGroup);
+            if (FocusedObject)
+            {
+                const lv_obj_class_t* ObjectClass = ::lv_obj_get_class(
+                    FocusedObject);
+
+                if (ObjectClass == &lv_textarea_class)
+                {
+                    TextareaObject = FocusedObject;
+                }
+                else if (ObjectClass == &lv_keyboard_class)
+                {
+                    TextareaObject = ::lv_keyboard_get_textarea(FocusedObject);
+                }
+            }
+
+            COMPOSITIONFORM CompositionForm;
+            CompositionForm.dwStyle = CFS_POINT;
+            CompositionForm.ptCurrentPos.x = 0;
+            CompositionForm.ptCurrentPos.y = 0;
+
+            if (TextareaObject)
+            {
+                lv_textarea_t* Textarea = reinterpret_cast<lv_textarea_t*>(
+                    TextareaObject);
+                lv_obj_t* Label = ::lv_textarea_get_label(TextareaObject);
+
+                CompositionForm.ptCurrentPos.x =
+                    Label->coords.x1 + Textarea->cursor.area.x1;
+                CompositionForm.ptCurrentPos.y =
+                    Label->coords.y1 + Textarea->cursor.area.y1;           
+            }
+
+            ::ImmSetCompositionWindow(hInputMethodContext, &CompositionForm);
+            ::ImmReleaseContext(hWnd, hInputMethodContext);
+        }
+
+        return ::DefWindowProcW(hWnd, uMsg, wParam, wParam);
     }
     case WM_MOUSEWHEEL:
     {
@@ -487,8 +542,8 @@ bool LvglWindowsInitialize(
     ::LvglCreateDisplayDriver(&disp_drv, g_WindowWidth, g_WindowHeight);
     ::lv_disp_drv_register(&disp_drv);
 
-    lv_group_t* default_group = ::lv_group_create();
-    ::lv_group_set_default(default_group);
+    g_DefaultGroup = ::lv_group_create();
+    ::lv_group_set_default(g_DefaultGroup);
 
     static lv_indev_drv_t indev_drv;
     ::lv_indev_drv_init(&indev_drv);
@@ -496,7 +551,7 @@ bool LvglWindowsInitialize(
     indev_drv.read_cb = ::LvglMouseDriverReadCallback;
     ::lv_indev_set_group(
         ::lv_indev_drv_register(&indev_drv),
-        default_group);
+        g_DefaultGroup);
 
     static lv_indev_drv_t kb_drv;
     lv_indev_drv_init(&kb_drv);
@@ -504,7 +559,7 @@ bool LvglWindowsInitialize(
     kb_drv.read_cb = ::LvglKeyboardDriverReadCallback;
     ::lv_indev_set_group(
         ::lv_indev_drv_register(&kb_drv),
-        default_group);
+        g_DefaultGroup);
 
     static lv_indev_drv_t enc_drv;
     lv_indev_drv_init(&enc_drv);
@@ -512,7 +567,7 @@ bool LvglWindowsInitialize(
     enc_drv.read_cb = ::LvglMousewheelDriverReadCallback;
     ::lv_indev_set_group(
         ::lv_indev_drv_register(&enc_drv),
-        default_group);
+        g_DefaultGroup);
 
     ::ShowWindow(g_WindowHandle, nShowCmd);
     ::UpdateWindow(g_WindowHandle);
