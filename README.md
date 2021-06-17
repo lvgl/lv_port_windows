@@ -21,7 +21,7 @@ Instructions for cloning, building and running the application are found below.
 
 - [ ] Accessibility support for grouped LVGL widgets.
 - [ ] Improve the input experience.
-  - [ ] IME Support.
+  - [x] IME Support.
   - [x] Touch input support.
   - [ ] The desktop style mouse wheel user experience.
 - [ ] Improve the UI performance.
@@ -49,6 +49,7 @@ wonder to use the LVGL simulator for Windows, please visit
   Studio.
 - [x] Provide Windows GDI font engine support.
 - [x] Support Windows touch input in the HAL level.
+- [x] Support Windows IME input in the HAL level.
 
 ## Drop the ARM32 Windows support
 
