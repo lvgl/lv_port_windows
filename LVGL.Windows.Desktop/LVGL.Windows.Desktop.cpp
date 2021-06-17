@@ -174,50 +174,57 @@ void LvglKeyboardDriverReadCallback(
     {
         auto Current = g_KeyQueue.front();
 
+        bool Skip = false;
+        std::uint32_t TranslatedKey = 0;
+
         switch (Current.first)
         {
         case VK_UP:
-            data->key = LV_KEY_UP;
+            TranslatedKey = LV_KEY_UP;
             break;
         case VK_DOWN:
-            data->key = LV_KEY_DOWN;
+            TranslatedKey = LV_KEY_DOWN;
             break;
         case VK_LEFT:
-            data->key = LV_KEY_LEFT;
+            TranslatedKey = LV_KEY_LEFT;
             break;
         case VK_RIGHT:
-            data->key = LV_KEY_RIGHT;
+            TranslatedKey = LV_KEY_RIGHT;
             break;
         case VK_ESCAPE:
-            data->key = LV_KEY_ESC;
+            TranslatedKey = LV_KEY_ESC;
             break;
         case VK_DELETE:
-            data->key = LV_KEY_DEL;
+            TranslatedKey = LV_KEY_DEL;
             break;
         case VK_BACK:
-            data->key = LV_KEY_BACKSPACE;
+            TranslatedKey = LV_KEY_BACKSPACE;
             break;
         case VK_RETURN:
-            data->key = LV_KEY_ENTER;
+            TranslatedKey = LV_KEY_ENTER;
             break;
         case VK_NEXT:
-            data->key = LV_KEY_NEXT;
+            TranslatedKey = LV_KEY_NEXT;
             break;
         case VK_PRIOR:
-            data->key = LV_KEY_PREV;
+            TranslatedKey = LV_KEY_PREV;
             break;
         case VK_HOME:
-            data->key = LV_KEY_HOME;
+            TranslatedKey = LV_KEY_HOME;
             break;
         case VK_END:
-            data->key = LV_KEY_END;
+            TranslatedKey = LV_KEY_END;
             break;
         default:
-            data->key = 0;
+            Skip = true;
             break;
         }
-        
-        data->state = Current.second;
+
+        if (!Skip)
+        {
+            data->key = TranslatedKey;
+            data->state = Current.second;
+        }
 
         g_KeyQueue.pop();
     }
