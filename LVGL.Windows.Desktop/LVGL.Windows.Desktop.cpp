@@ -65,7 +65,6 @@ static bool volatile g_WindowResizingSignal = false;
 
 std::mutex g_KeyboardMutex;
 std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> g_KeyQueue;
-std::queue<std::pair<std::uint32_t, ::lv_indev_state_t>> g_CharQueue;
 static uint16_t volatile g_Utf16HighSurrogate = 0;
 static uint16_t volatile g_Utf16LowSurrogate = 0;
 static lv_group_t* volatile g_DefaultGroup = nullptr;
@@ -161,75 +160,17 @@ void LvglKeyboardDriverReadCallback(
 
     std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
 
-    if (!g_CharQueue.empty())
-    {
-        auto Current = g_CharQueue.front();
-
-        data->key = ::_lv_txt_unicode_to_encoded(Current.first);
-        data->state = Current.second;
-
-        g_CharQueue.pop();
-    }
-    else if (!g_KeyQueue.empty())
+    if (!g_KeyQueue.empty())
     {
         auto Current = g_KeyQueue.front();
 
-        bool Skip = false;
-        std::uint32_t TranslatedKey = 0;
-
-        switch (Current.first)
-        {
-        case VK_UP:
-            TranslatedKey = LV_KEY_UP;
-            break;
-        case VK_DOWN:
-            TranslatedKey = LV_KEY_DOWN;
-            break;
-        case VK_LEFT:
-            TranslatedKey = LV_KEY_LEFT;
-            break;
-        case VK_RIGHT:
-            TranslatedKey = LV_KEY_RIGHT;
-            break;
-        case VK_ESCAPE:
-            TranslatedKey = LV_KEY_ESC;
-            break;
-        case VK_DELETE:
-            TranslatedKey = LV_KEY_DEL;
-            break;
-        case VK_BACK:
-            TranslatedKey = LV_KEY_BACKSPACE;
-            break;
-        case VK_RETURN:
-            TranslatedKey = LV_KEY_ENTER;
-            break;
-        case VK_NEXT:
-            TranslatedKey = LV_KEY_NEXT;
-            break;
-        case VK_PRIOR:
-            TranslatedKey = LV_KEY_PREV;
-            break;
-        case VK_HOME:
-            TranslatedKey = LV_KEY_HOME;
-            break;
-        case VK_END:
-            TranslatedKey = LV_KEY_END;
-            break;
-        default:
-            Skip = true;
-            break;
-        }
-
-        if (!Skip)
-        {
-            data->key = TranslatedKey;
-            data->state = Current.second;
-        }
+        data->key = Current.first;
+        data->state = Current.second;
 
         g_KeyQueue.pop();
     }
 
-    if (!g_CharQueue.empty() || !g_KeyQueue.empty())
+    if (!g_KeyQueue.empty())
     {
         data->continue_reading = true;
     }
@@ -287,14 +228,62 @@ LRESULT CALLBACK WndProc(
     {
         std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
 
-        g_KeyQueue.push(
-            std::make_pair(
-                static_cast<std::uint32_t>(wParam),
+        bool SkipTranslation = false;
+        std::uint32_t TranslatedKey = 0;
+
+        switch (wParam)
+        {
+        case VK_UP:
+            TranslatedKey = LV_KEY_UP;
+            break;
+        case VK_DOWN:
+            TranslatedKey = LV_KEY_DOWN;
+            break;
+        case VK_LEFT:
+            TranslatedKey = LV_KEY_LEFT;
+            break;
+        case VK_RIGHT:
+            TranslatedKey = LV_KEY_RIGHT;
+            break;
+        case VK_ESCAPE:
+            TranslatedKey = LV_KEY_ESC;
+            break;
+        case VK_DELETE:
+            TranslatedKey = LV_KEY_DEL;
+            break;
+        case VK_BACK:
+            TranslatedKey = LV_KEY_BACKSPACE;
+            break;
+        case VK_RETURN:
+            TranslatedKey = LV_KEY_ENTER;
+            break;
+        case VK_NEXT:
+            TranslatedKey = LV_KEY_NEXT;
+            break;
+        case VK_PRIOR:
+            TranslatedKey = LV_KEY_PREV;
+            break;
+        case VK_HOME:
+            TranslatedKey = LV_KEY_HOME;
+            break;
+        case VK_END:
+            TranslatedKey = LV_KEY_END;
+            break;
+        default:
+            SkipTranslation = true;
+            break;
+        }
+
+        if (!SkipTranslation)
+        {
+            g_KeyQueue.push(std::make_pair(
+                TranslatedKey,
                 static_cast<lv_indev_state_t>(
                     (uMsg == WM_KEYUP)
                     ? LV_INDEV_STATE_REL
                     : LV_INDEV_STATE_PR)));
-
+        }
+        
         break;
     }
     case WM_CHAR:
@@ -325,12 +314,14 @@ LRESULT CALLBACK WndProc(
                 g_Utf16LowSurrogate = 0;
             }
 
-            g_CharQueue.push(std::make_pair(
-                CodePoint,
+            uint32_t LvglCodePoint = ::_lv_txt_unicode_to_encoded(CodePoint);
+
+            g_KeyQueue.push(std::make_pair(
+                LvglCodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_PR)));
 
-            g_CharQueue.push(std::make_pair(
-                CodePoint,
+            g_KeyQueue.push(std::make_pair(
+                LvglCodePoint,
                 static_cast<lv_indev_state_t>(LV_INDEV_STATE_REL)));
         }
 
