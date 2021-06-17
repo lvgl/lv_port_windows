@@ -228,6 +228,11 @@ void LvglKeyboardDriverReadCallback(
 
         g_KeyQueue.pop();
     }
+
+    if (!g_CharQueue.empty() || !g_KeyQueue.empty())
+    {
+        data->continue_reading = true;
+    }
 }
 
 void LvglMousewheelDriverReadCallback(
