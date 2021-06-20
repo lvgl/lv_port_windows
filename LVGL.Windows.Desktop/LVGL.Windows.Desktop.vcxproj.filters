@@ -5,9 +5,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mile.Project.Properties.h" />
-    <ClInclude Include="LVGL.Windows.h">
-      <Filter>LVGL.Windows</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h" />
     <ClInclude Include="Mile.Portable.h">
       <Filter>Mile.Portable</Filter>
@@ -18,9 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LVGL.Windows.Desktop.cpp" />
-    <ClCompile Include="LVGL.Windows.cpp">
-      <Filter>LVGL.Windows</Filter>
-    </ClCompile>
     <ClCompile Include="Mile.Portable.cpp">
       <Filter>Mile.Portable</Filter>
     </ClCompile>
@@ -29,9 +23,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="LVGL.Windows">
-      <UniqueIdentifier>{ddee68e6-b582-4a67-a5d2-cd2d172e40a0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Mile.Portable">
       <UniqueIdentifier>{838a8691-fa74-4e9c-a739-c0f8b7c2f487}</UniqueIdentifier>
     </Filter>

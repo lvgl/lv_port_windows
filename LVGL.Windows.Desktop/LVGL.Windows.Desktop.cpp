@@ -8,7 +8,7 @@
  * DEVELOPER: Mouri_Naruto (Mouri_Naruto AT Outlook.com)
  */
 
-#include "LVGL.Windows.h"
+#include "Mile.Windows.h"
 
 #include <Windows.h>
 #include <windowsx.h>
@@ -43,6 +43,208 @@
 #endif
 
 #include <LVGL.Windows.Font.h>
+
+/**
+ * @brief Creates a B8G8R8A8 frame buffer.
+ * @param WindowHandle A handle to the window for the creation of the frame
+ *                     buffer. If this value is nullptr, the entire screen will
+ *                     be referenced.
+ * @param Width The width of the frame buffer.
+ * @param Height The height of the frame buffer.
+ * @param PixelBuffer The raw pixel buffer of the frame buffer you created.
+ * @param PixelBufferSize The size of the frame buffer you created.
+ * @return If the function succeeds, the return value is a handle to the device
+ *         context (DC) for the frame buffer. If the function fails, the return
+ *         value is nullptr, and PixelBuffer parameter is nullptr.
+*/
+EXTERN_C HDC WINAPI LvglCreateFrameBuffer(
+    _In_opt_ HWND WindowHandle,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _Out_ UINT32** PixelBuffer,
+    _Out_ SIZE_T* PixelBufferSize)
+{
+    HDC hFrameBufferDC = nullptr;
+
+    if (PixelBuffer && PixelBufferSize)
+    {
+        HDC hWindowDC = ::GetDC(WindowHandle);
+        if (hWindowDC)
+        {
+            hFrameBufferDC = ::CreateCompatibleDC(hWindowDC);
+            ::ReleaseDC(WindowHandle, hWindowDC);
+        }
+
+        if (hFrameBufferDC)
+        {
+            BITMAPINFO BitmapInfo = { 0 };
+            BitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+            BitmapInfo.bmiHeader.biWidth = Width;
+            BitmapInfo.bmiHeader.biHeight = -Height;
+            BitmapInfo.bmiHeader.biPlanes = 1;
+            BitmapInfo.bmiHeader.biBitCount = 32;
+            BitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+            HBITMAP hBitmap = ::CreateDIBSection(
+                hFrameBufferDC,
+                &BitmapInfo,
+                DIB_RGB_COLORS,
+                reinterpret_cast<void**>(PixelBuffer),
+                nullptr,
+                0);
+            if (hBitmap)
+            {
+                *PixelBufferSize = Width * Height * sizeof(UINT32);
+                ::DeleteObject(::SelectObject(hFrameBufferDC, hBitmap));
+                ::DeleteObject(hBitmap);
+            }
+            else
+            {
+                ::DeleteDC(hFrameBufferDC);
+                hFrameBufferDC = nullptr;
+            }
+        }
+    }
+
+    return hFrameBufferDC;
+}
+
+/**
+ * @brief Returns the dots per inch (dpi) value for the associated window.
+ * @param WindowHandle The window you want to get information about.
+ * @return The DPI for the window.
+*/
+EXTERN_C UINT WINAPI LvglGetDpiForWindow(
+    _In_ HWND WindowHandle)
+{
+    UINT Result = static_cast<UINT>(-1);
+
+    UINT dpiX = 0;
+    UINT dpiY = 0;
+    if (Mile::GetDpiForMonitor(
+        ::MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST),
+        MONITOR_DPI_TYPE::MDT_EFFECTIVE_DPI,
+        &dpiX,
+        &dpiY).IsSucceeded())
+    {
+        Result = dpiX;
+    }
+
+    if (Result == static_cast<UINT>(-1))
+    {
+        HDC hWindowDC = ::GetDC(WindowHandle);
+        if (hWindowDC)
+        {
+            Result = ::GetDeviceCaps(hWindowDC, LOGPIXELSX);
+            ::ReleaseDC(WindowHandle, hWindowDC);
+        }
+    }
+
+    if (Result == static_cast<UINT>(-1))
+    {
+        Result = USER_DEFAULT_SCREEN_DPI;
+    }
+
+    return Result;
+}
+
+/**
+ * @brief Registers a window as being touch-capable.
+ * @param hWnd The handle of the window being registered.
+ * @param ulFlags A set of bit flags that specify optional modifications.
+ * @return If the function succeeds, the return value is nonzero. If the
+ *         function fails, the return value is zero.
+ * @remark For more information, see RegisterTouchWindow.
+*/
+EXTERN_C BOOL WINAPI LvglRegisterTouchWindow(
+    _In_ HWND hWnd,
+    _In_ ULONG ulFlags)
+{
+    HMODULE ModuleHandle = ::GetModuleHandleW(L"user32.dll");
+    if (!ModuleHandle)
+    {
+        return FALSE;
+    }
+
+    decltype(::RegisterTouchWindow)* pRegisterTouchWindow =
+        reinterpret_cast<decltype(::RegisterTouchWindow)*>(
+            ::GetProcAddress(ModuleHandle, "RegisterTouchWindow"));
+    if (!pRegisterTouchWindow)
+    {
+        return FALSE;
+    }
+
+    return pRegisterTouchWindow(hWnd, ulFlags);
+}
+
+/**
+ * @brief Retrieves detailed information about touch inputs associated with a
+ *        particular touch input handle.
+ * @param hTouchInput The touch input handle received in the LPARAM of a touch
+ *                    message.
+ * @param cInputs The number of structures in the pInputs array.
+ * @param pInputs A pointer to an array of TOUCHINPUT structures to receive
+ *                information about the touch points associated with the
+ *                specified touch input handle.
+ * @param cbSize The size, in bytes, of a single TOUCHINPUT structure.
+ * @return If the function succeeds, the return value is nonzero. If the
+ *         function fails, the return value is zero.
+ * @remark For more information, see GetTouchInputInfo.
+*/
+EXTERN_C BOOL WINAPI LvglGetTouchInputInfo(
+    _In_ HTOUCHINPUT hTouchInput,
+    _In_ UINT cInputs,
+    _Out_ PTOUCHINPUT pInputs,
+    _In_ int cbSize)
+{
+    HMODULE ModuleHandle = ::GetModuleHandleW(L"user32.dll");
+    if (!ModuleHandle)
+    {
+        return FALSE;
+    }
+
+    decltype(::GetTouchInputInfo)* pGetTouchInputInfo =
+        reinterpret_cast<decltype(::GetTouchInputInfo)*>(
+            ::GetProcAddress(ModuleHandle, "GetTouchInputInfo"));
+    if (!pGetTouchInputInfo)
+    {
+        return FALSE;
+    }
+
+    return pGetTouchInputInfo(hTouchInput, cInputs, pInputs, cbSize);
+}
+
+/**
+ * @brief Closes a touch input handle, frees process memory associated with it,
+          and invalidates the handle.
+ * @param hTouchInput The touch input handle received in the LPARAM of a touch
+ *                    message.
+ * @return If the function succeeds, the return value is nonzero. If the
+ *         function fails, the return value is zero.
+ * @remark For more information, see CloseTouchInputHandle.
+*/
+EXTERN_C BOOL WINAPI LvglCloseTouchInputHandle(
+    _In_ HTOUCHINPUT hTouchInput)
+{
+    HMODULE ModuleHandle = ::GetModuleHandleW(L"user32.dll");
+    if (!ModuleHandle)
+    {
+        return FALSE;
+    }
+
+    decltype(::CloseTouchInputHandle)* pCloseTouchInputHandle =
+        reinterpret_cast<decltype(::CloseTouchInputHandle)*>(
+            ::GetProcAddress(ModuleHandle, "CloseTouchInputHandle"));
+    if (!pCloseTouchInputHandle)
+    {
+        return FALSE;
+    }
+
+    return pCloseTouchInputHandle(hTouchInput);
+}
+
+
+
 
 static HINSTANCE g_InstanceHandle = nullptr;
 static int volatile g_WindowWidth = 0;
@@ -490,12 +692,12 @@ bool LvglWindowsInitialize(
     ::LvglWindowsGdiFontInitialize(DefaultFontName);
 
     HICON IconHandle = ::LoadIconW(
-        GetModuleHandleW(nullptr),
+        ::GetModuleHandleW(nullptr),
         MAKEINTRESOURCE(IDI_LVGL));
 
     WNDCLASSEXW WindowClass;
 
-    WindowClass.cbSize = sizeof(WNDCLASSEX);
+    WindowClass.cbSize = sizeof(WNDCLASSEXW);
 
     WindowClass.style = 0;
     WindowClass.lpfnWndProc = ::WndProc;
@@ -537,7 +739,7 @@ bool LvglWindowsInitialize(
 
     ::LvglRegisterTouchWindow(g_WindowHandle, 0);
 
-    ::LvglEnableChildWindowDpiMessage(g_WindowHandle);
+    Mile::EnableChildWindowDpiMessage(g_WindowHandle);
     g_WindowDPI = ::LvglGetDpiForWindow(g_WindowHandle);
 
     static lv_disp_drv_t disp_drv;
