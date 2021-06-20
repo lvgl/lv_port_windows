@@ -23,12 +23,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LVGL.Windows.h" />
+    <ClInclude Include="Mile.Portable.h" />
     <ClInclude Include="Mile.Project.Properties.h" />
+    <ClInclude Include="Mile.Windows.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LVGL.Windows.cpp" />
     <ClCompile Include="LVGL.Windows.Desktop.cpp" />
+    <ClCompile Include="Mile.Portable.cpp" />
+    <ClCompile Include="Mile.Windows.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="LVGL.Windows.Desktop.rc" />
