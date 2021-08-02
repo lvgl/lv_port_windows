@@ -1117,7 +1117,7 @@ namespace Mile
      * @brief The information about a found file or directory queried from the
      *        file enumerator.
     */
-    typedef struct _FILE_ENUMERATOR_INFORMATION
+    typedef struct _FILE_ENUMERATE_INFORMATION
     {
         FILETIME CreationTime;
         FILETIME LastAccessTime;
@@ -1130,7 +1130,19 @@ namespace Mile
         LARGE_INTEGER FileId;
         WCHAR ShortName[16];
         WCHAR FileName[256];
-    } FILE_ENUMERATOR_INFORMATION, *PFILE_ENUMERATOR_INFORMATION;
+    } FILE_ENUMERATE_INFORMATION, *PFILE_ENUMERATE_INFORMATION;
+
+    /**
+     * @brief The file enumerate callback type.
+     * @param Information The file enumerate information.
+     * @param Context The user context.
+     * @return If the return value is non-zero, the file enumerate will be
+     *         continued. If the return value is zero, the file enumerate will
+     *         be terminated.
+    */
+    typedef BOOL(WINAPI* ENUMERATE_FILE_CALLBACK_TYPE)(
+        _In_ Mile::PFILE_ENUMERATE_INFORMATION Information,
+        _In_opt_ LPVOID Context);
 
     /**
      * @brief The resource info struct.
@@ -1268,10 +1280,9 @@ namespace Mile
      *                                 Indicates that the data for the file
      *                                 should be compressed in 16kb chunks with
      *                                 the XPress algorithm.
-     * @return An HResultFromLastError object An containing the HResult object
-     *         containing the error code.
+     * @return An HResult object containing the error code.
     */
-    HResultFromLastError GetWofCompressionAttribute(
+    HResult GetWofCompressionAttribute(
         _In_ HANDLE FileHandle,
         _Out_ PDWORD CompressionAlgorithm);
 
@@ -1305,10 +1316,9 @@ namespace Mile
      *                                 Indicates that the data for the file
      *                                 should be compressed in 16kb chunks with
      *                                 the XPress algorithm.
-     * @return An HResultFromLastError object An containing the HResult object
-     *         containing the error code.
+     * @return An HResult object containing the error code.
     */
-    HResultFromLastError SetWofCompressionAttribute(
+    HResult SetWofCompressionAttribute(
         _In_ HANDLE FileHandle,
         _In_ DWORD CompressionAlgorithm);
 
@@ -1317,10 +1327,9 @@ namespace Mile
      * @param FileHandle A handle to the file on which the operation is to be
      *                   performed. To retrieve a handle, use the CreateFile or
      *                   a similar API.
-     * @return An HResultFromLastError object An containing the HResult object
-     *         containing the error code.
+     * @return An HResult object containing the error code.
     */
-    HResultFromLastError RemoveWofCompressionAttribute(
+    HResult RemoveWofCompressionAttribute(
         _In_ HANDLE FileHandle);
 
     /**
@@ -1346,47 +1355,20 @@ namespace Mile
         _In_ DWORD DeploymentState);
 
     /**
-     * @brief Creates a file enumerator handle for searching a directory for a
-     *        file or subdirectory with a name.
-     * @param FileEnumeratorHandle The file enumerator handle.
+     * @brief Enumerates files in a directory.
      * @param FileHandle The handle of the file to be searched a directory for
      *                   a file or subdirectory with a name. This handle must
      *                   be opened with the appropriate permissions for the
      *                   requested change. This handle should not be a pipe
      *                   handle.
+     * @param Callback The file enumerate callback.
+     * @param Context The user context.
      * @return An HResult object containing the error code.
     */
-    HResult CreateFileEnumerator(
-        _Out_ PFILE_ENUMERATOR_HANDLE FileEnumeratorHandle,
-        _In_ HANDLE FileHandle);
-
-    /**
-     * @brief Closes a file enumerator handle opened by CreateFileEnumerator.
-     * @param FileEnumeratorHandle The file enumerator handle.
-     * @return An HResultFromLastError object An containing the HResult object
-     *         containing the error code.
-    */
-    HResultFromLastError CloseFileEnumerator(
-        _In_ FILE_ENUMERATOR_HANDLE FileEnumeratorHandle);
-
-    /**
-     * @brief Starts or continues a file search from a file enumerator handle.
-     * @param FileEnumeratorHandle The file enumerator handle.
-     * @param FileEnumeratorInformation A pointer to the
-     *                                  FILE_ENUMERATOR_INFORMATION structure
-     *                                  that receives information about a found
-     *                                  file or directory.
-     * @return An HResultFromLastError object An containing the HResult object
-     *         containing the error code. If the function succeeds, the
-     *         FileEnumeratorInformation parameter contains information about
-     *         the next file or directory found. If the function fails, the
-     *         contents of FileEnumeratorInformation are indeterminate. If the
-     *         function fails because no more matching files can be found,
-     *         the error code is HRESULT_FROM_WIN32(ERROR_NO_MORE_FILES).
-    */
-    HResultFromLastError QueryFileEnumerator(
-        _In_ FILE_ENUMERATOR_HANDLE FileEnumeratorHandle,
-        _Out_ PFILE_ENUMERATOR_INFORMATION FileEnumeratorInformation);
+    HResult EnumerateFile(
+        _In_ HANDLE FileHandle,
+        _In_ Mile::ENUMERATE_FILE_CALLBACK_TYPE Callback,
+        _In_opt_ LPVOID Context);
 
     /**
      * @brief Retrieves the size of the specified file.
@@ -1495,8 +1477,8 @@ namespace Mile
         _In_ HANDLE FileHandle);
 
     /**
-     * @brief Tests for the current directory and parent directory markers *
-              while iterating through files.
+     * @brief Tests for the current directory and parent directory markers
+     *        while iterating through files.
      * @param Name The name of the file or directory for testing.
      * @return Nonzero if the found file has the name "." or "..", which
      *         indicates that the found file is actually a directory. Otherwise
@@ -2139,14 +2121,113 @@ namespace Mile
     }
 
     /**
-     * @brief Write formatted data to a string.
+     * @brief Write formatted data to a UTF-16 string.
+     * @param Format Format-control string.
+     * @param ArgList Pointer to list of optional arguments to be formatted.
+     * @return A formatted string if successful, an empty string otherwise.
+    */
+    std::wstring VFormatUtf16String(
+        _In_z_ _Printf_format_string_ wchar_t const* const Format,
+        _In_z_ _Printf_format_string_ va_list ArgList);
+
+    /**
+     * @brief Write formatted data to a UTF-8 string.
+     * @param Format Format-control string.
+     * @param ArgList Pointer to list of optional arguments to be formatted.
+     * @return A formatted string if successful, an empty string otherwise.
+    */
+    std::string VFormatUtf8String(
+        _In_z_ _Printf_format_string_ char const* const Format,
+        _In_z_ _Printf_format_string_ va_list ArgList);
+
+    /**
+     * @brief Write formatted data to a UTF-16 string.
      * @param Format Format-control string.
      * @param ... Optional arguments to be formatted.
      * @return A formatted string if successful, an empty string otherwise.
     */
-    std::wstring FormatString(
+    std::wstring FormatUtf16String(
         _In_z_ _Printf_format_string_ wchar_t const* const Format,
         ...);
+
+    /**
+     * @brief Write formatted data to a UTF-8 string.
+     * @param Format Format-control string.
+     * @param ... Optional arguments to be formatted.
+     * @return A formatted string if successful, an empty string otherwise.
+    */
+    std::string FormatUtf8String(
+        _In_z_ _Printf_format_string_ char const* const Format,
+        ...);
+
+    /**
+     * @brief Converts a numeric value into a UTF-16 string that represents
+     *        the number expressed as a size value in byte, bytes, kibibytes,
+     *        mebibytes, gibibytes, tebibytes, pebibytes or exbibytes,
+     *        depending on the size.
+     * @param ByteSize The numeric byte size value to be converted.
+     * @return A formatted string if successful, an empty string otherwise.
+    */
+    std::wstring ConvertByteSizeToUtf16String(
+        std::uint64_t ByteSize);
+
+    /**
+     * @brief Converts a numeric value into a UTF-8 string that represents
+     *        the number expressed as a size value in byte, bytes, kibibytes,
+     *        mebibytes, gibibytes, tebibytes, pebibytes or exbibytes,
+     *        depending on the size.
+     * @param ByteSize The numeric byte size value to be converted.
+     * @return A formatted string if successful, an empty string otherwise.
+    */
+    std::string ConvertByteSizeToUtf8String(
+        std::uint64_t ByteSize);
+
+    /**
+     * @brief Enumerates files in a directory.
+     * @tparam CallbackType The callback type.
+     * @param FileHandle The handle of the file to be searched a directory for
+     *                   a file or subdirectory with a name. This handle must
+     *                   be opened with the appropriate permissions for the
+     *                   requested change. This handle should not be a pipe
+     *                   handle.
+     * @param CallbackFunction The file enumerate callback function. 
+     * @return An HResult object containing the error code.
+    */
+    template<class CallbackType>
+    HResult EnumerateFile(
+        _In_ HANDLE FileHandle,
+        _In_ CallbackType&& CallbackFunction)
+    {
+        Mile::HResult hr = S_OK;
+
+        CallbackType* CallbackObject = new CallbackType(
+            std::move(CallbackFunction));
+        if (CallbackObject)
+        {
+            auto FileEnumerateCallback = [](
+                _In_ Mile::PFILE_ENUMERATE_INFORMATION Information,
+                _In_opt_ LPVOID Context) -> BOOL
+            {
+                auto Callback = reinterpret_cast<CallbackType*>(Context);
+                BOOL Result = (*Callback)(Information);
+
+                return Result;
+            };
+
+            hr = Mile::EnumerateFile(
+                FileHandle,
+                FileEnumerateCallback,
+                reinterpret_cast<LPVOID>(CallbackObject));
+
+            delete CallbackObject;
+        }
+        else
+        {
+            hr = E_OUTOFMEMORY;
+        }
+
+        return hr;
+    }
 
 #pragma endregion
 }

@@ -37,16 +37,57 @@ namespace
         FILE_PROVIDER_EXTERNAL_INFO FileProvider;
     } WOF_FILE_PROVIDER_EXTERNAL_INFO, * PWOF_FILE_PROVIDER_EXTERNAL_INFO;
 
-    /**
-     * @brief The internal content of the file enumerator handle.
-    */
-    typedef struct _FILE_ENUMERATOR_OBJECT
+    static void FillFileEnumerateInformation(
+        _In_ PFILE_ID_BOTH_DIR_INFO OriginalInformation,
+        _Out_ Mile::PFILE_ENUMERATE_INFORMATION ConvertedInformation)
     {
-        HANDLE FileHandle;
-        CRITICAL_SECTION CriticalSection;
-        PFILE_ID_BOTH_DIR_INFO CurrentFileInfo;
-        BYTE FileInfoBuffer[32768];
-    } FILE_ENUMERATOR_OBJECT, * PFILE_ENUMERATOR_OBJECT;
+        ConvertedInformation->CreationTime.dwLowDateTime =
+            OriginalInformation->CreationTime.LowPart;
+        ConvertedInformation->CreationTime.dwHighDateTime =
+            OriginalInformation->CreationTime.HighPart;
+
+        ConvertedInformation->LastAccessTime.dwLowDateTime =
+            OriginalInformation->LastAccessTime.LowPart;
+        ConvertedInformation->LastAccessTime.dwHighDateTime =
+            OriginalInformation->LastAccessTime.HighPart;
+
+        ConvertedInformation->LastWriteTime.dwLowDateTime =
+            OriginalInformation->LastWriteTime.LowPart;
+        ConvertedInformation->LastWriteTime.dwHighDateTime =
+            OriginalInformation->LastWriteTime.HighPart;
+
+        ConvertedInformation->ChangeTime.dwLowDateTime =
+            OriginalInformation->ChangeTime.LowPart;
+        ConvertedInformation->ChangeTime.dwHighDateTime =
+            OriginalInformation->ChangeTime.HighPart;
+
+        ConvertedInformation->FileSize =
+            OriginalInformation->EndOfFile.QuadPart;
+
+        ConvertedInformation->AllocationSize =
+            OriginalInformation->AllocationSize.QuadPart;
+
+        ConvertedInformation->FileAttributes =
+            OriginalInformation->FileAttributes;
+
+        ConvertedInformation->EaSize =
+            OriginalInformation->EaSize;
+
+        ConvertedInformation->FileId =
+            OriginalInformation->FileId;
+
+        ::StringCbCopyNW(
+            ConvertedInformation->ShortName,
+            sizeof(ConvertedInformation->ShortName),
+            OriginalInformation->ShortName,
+            OriginalInformation->ShortNameLength);
+
+        ::StringCbCopyNW(
+            ConvertedInformation->FileName,
+            sizeof(ConvertedInformation->FileName),
+            OriginalInformation->FileName,
+            OriginalInformation->FileNameLength);
+    }
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_SYSTEM)
 
@@ -283,32 +324,38 @@ Mile::HResultFromLastError Mile::SetNtfsCompressionAttribute(
         &BytesReturned);
 }
 
-Mile::HResultFromLastError Mile::GetWofCompressionAttribute(
+Mile::HResult Mile::GetWofCompressionAttribute(
     _In_ HANDLE FileHandle,
     _Out_ PDWORD CompressionAlgorithm)
 {
     if (!CompressionAlgorithm)
+    {
         return E_INVALIDARG;
+    }
 
     WOF_FILE_PROVIDER_EXTERNAL_INFO WofInfo = { 0 };
     DWORD BytesReturned;
-    if (!Mile::DeviceIoControl(
+    Mile::HResult hr = Mile::HResultFromLastError(Mile::DeviceIoControl(
         FileHandle,
         FSCTL_GET_EXTERNAL_BACKING,
         nullptr,
         0,
         &WofInfo,
         sizeof(WofInfo),
-        &BytesReturned))
+        &BytesReturned));
+    if (hr.IsSucceeded())
     {
-        return FALSE;
+        if (WofInfo.Wof.Version == WOF_CURRENT_VERSION &&
+            WofInfo.Wof.Provider == WOF_PROVIDER_FILE)
+        {
+            *CompressionAlgorithm = WofInfo.FileProvider.Algorithm;
+        }
     }
 
-    *CompressionAlgorithm = WofInfo.FileProvider.Algorithm;
-    return TRUE;
+    return hr;
 }
 
-Mile::HResultFromLastError Mile::SetWofCompressionAttribute(
+Mile::HResult Mile::SetWofCompressionAttribute(
     _In_ HANDLE FileHandle,
     _In_ DWORD CompressionAlgorithm)
 {
@@ -333,34 +380,47 @@ Mile::HResultFromLastError Mile::SetWofCompressionAttribute(
     WofInfo.FileProvider.Algorithm = CompressionAlgorithm;
 
     DWORD BytesReturned;
-    return Mile::DeviceIoControl(
+    Mile::HResult hr = Mile::HResultFromLastError(Mile::DeviceIoControl(
         FileHandle,
         FSCTL_SET_EXTERNAL_BACKING,
         &WofInfo,
         sizeof(WofInfo),
         nullptr,
         0,
-        &BytesReturned);
+        &BytesReturned));
+    if (hr.GetCode() == ERROR_COMPRESSION_NOT_BENEFICIAL ||
+        hr.GetCode() == ERROR_MR_MID_NOT_FOUND)
+    {
+        hr = S_OK;
+    }
+
+    return hr;
 }
 
-Mile::HResultFromLastError Mile::RemoveWofCompressionAttribute(
+Mile::HResult Mile::RemoveWofCompressionAttribute(
     _In_ HANDLE FileHandle)
 {
     DWORD BytesReturned;
-    return Mile::DeviceIoControl(
+    Mile::HResult hr = Mile::HResultFromLastError(Mile::DeviceIoControl(
         FileHandle,
         FSCTL_DELETE_EXTERNAL_BACKING,
         nullptr,
         0,
         nullptr,
         0,
-        &BytesReturned);
+        &BytesReturned));
+    if (hr.GetCode() == ERROR_OBJECT_NOT_EXTERNALLY_BACKED)
+    {
+        hr = S_OK;
+    }
+
+    return hr;
 }
 
 Mile::HResult Mile::GetCompactOsDeploymentState(
     _Out_ PDWORD DeploymentState)
 {
-    if (DeploymentState)
+    if (!DeploymentState)
     {
         return E_INVALIDARG;
     }
@@ -428,152 +488,110 @@ Mile::HResult Mile::SetCompactOsDeploymentState(
     return hr;
 }
 
-Mile::HResult Mile::CreateFileEnumerator(
-    _Out_ Mile::PFILE_ENUMERATOR_HANDLE FileEnumeratorHandle,
-    _In_ HANDLE FileHandle)
+Mile::HResult Mile::EnumerateFile(
+    _In_ HANDLE FileHandle,
+    _In_ Mile::ENUMERATE_FILE_CALLBACK_TYPE Callback,
+    _In_opt_ LPVOID Context)
 {
-    if (FileEnumeratorHandle)
-    {
-        return E_INVALIDARG;
-    }
-
     if (!FileHandle || FileHandle == INVALID_HANDLE_VALUE)
     {
         return E_INVALIDARG;
     }
 
-    PFILE_ENUMERATOR_OBJECT Object = reinterpret_cast<PFILE_ENUMERATOR_OBJECT>(
-        Mile::HeapMemory::Allocate(sizeof(FILE_ENUMERATOR_OBJECT)));
-    if (!Object)
+    if (!Callback)
+    {
+        return E_INVALIDARG;
+    }
+
+    const SIZE_T BufferSize = 32768;
+    PBYTE Buffer = nullptr;
+    PFILE_ID_BOTH_DIR_INFO OriginalInformation = nullptr;
+    Mile::FILE_ENUMERATE_INFORMATION ConvertedInformation = { 0 };
+
+    auto ExitHandler = Mile::ScopeExitTaskHandler([&]()
+    {
+        if (Buffer)
+        {
+            Mile::HeapMemory::Free(Buffer);
+        }
+    });
+
+    Buffer = reinterpret_cast<PBYTE>(Mile::HeapMemory::Allocate(BufferSize));
+    if (!Buffer)
     {
         return E_OUTOFMEMORY;
     }
 
-    Object->FileHandle = FileHandle;
-    Mile::CriticalSection::Initialize(&Object->CriticalSection);
-    *FileEnumeratorHandle = Object;
+    OriginalInformation =
+        reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(Buffer);
 
-    return S_OK;
-}
-
-Mile::HResultFromLastError Mile::CloseFileEnumerator(
-    _In_ Mile::FILE_ENUMERATOR_HANDLE FileEnumeratorHandle)
-{
-    if (!FileEnumeratorHandle)
+    if (::GetFileInformationByHandleEx(
+        FileHandle,
+        FILE_INFO_BY_HANDLE_CLASS::FileIdBothDirectoryRestartInfo,
+        OriginalInformation,
+        BufferSize))
     {
-        ::SetLastError(ERROR_INVALID_PARAMETER);
-        return FALSE;
-    }
+        for (;;)
+        {
+            ::FillFileEnumerateInformation(
+                OriginalInformation,
+                &ConvertedInformation);
 
-    PFILE_ENUMERATOR_OBJECT Object =
-        reinterpret_cast<PFILE_ENUMERATOR_OBJECT>(FileEnumeratorHandle);
+            if (!Callback(&ConvertedInformation, Context))
+            {
+                return S_OK;
+            }
 
-    Mile::CriticalSection::Delete(&Object->CriticalSection);
+            if (!OriginalInformation->NextEntryOffset)
+            {
+                OriginalInformation =
+                    reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(Buffer);
+                break;
+            }
 
-    return Mile::HeapMemory::Free(Object);
-}
+            OriginalInformation = reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(
+                reinterpret_cast<ULONG_PTR>(OriginalInformation)
+                + OriginalInformation->NextEntryOffset);
+        }
 
-Mile::HResultFromLastError Mile::QueryFileEnumerator(
-    _In_ Mile::FILE_ENUMERATOR_HANDLE FileEnumeratorHandle,
-    _Out_ Mile::PFILE_ENUMERATOR_INFORMATION FileEnumeratorInformation)
-{
-    if ((!FileEnumeratorHandle) || (!FileEnumeratorInformation))
-    {
-        ::SetLastError(ERROR_INVALID_PARAMETER);
-        return FALSE;
-    }
-
-    BOOL Result = FALSE;
-
-    PFILE_ENUMERATOR_OBJECT Object =
-        reinterpret_cast<PFILE_ENUMERATOR_OBJECT>(FileEnumeratorHandle);
-
-    Mile::CriticalSection::Enter(&Object->CriticalSection);
-
-    if (!Object->CurrentFileInfo)
-    {
-        Object->CurrentFileInfo =
-            reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(Object->FileInfoBuffer);
-
-        Result = ::GetFileInformationByHandleEx(
-            Object->FileHandle,
-            FILE_INFO_BY_HANDLE_CLASS::FileIdBothDirectoryRestartInfo,
-            Object->CurrentFileInfo,
-            sizeof(Object->FileInfoBuffer));
-    }
-    else if (!Object->CurrentFileInfo->NextEntryOffset)
-    {
-        Object->CurrentFileInfo =
-            reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(Object->FileInfoBuffer);
-
-        Result = ::GetFileInformationByHandleEx(
-            Object->FileHandle,
+        while (::GetFileInformationByHandleEx(
+            FileHandle,
             FILE_INFO_BY_HANDLE_CLASS::FileIdBothDirectoryInfo,
-            Object->CurrentFileInfo,
-            sizeof(Object->FileInfoBuffer));
+            OriginalInformation,
+            BufferSize))
+        {
+            for (;;)
+            {
+                ::FillFileEnumerateInformation(
+                    OriginalInformation,
+                    &ConvertedInformation);
+
+                if (!Callback(&ConvertedInformation, Context))
+                {
+                    return S_OK;
+                }
+
+                if (!OriginalInformation->NextEntryOffset)
+                {
+                    OriginalInformation =
+                        reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(Buffer);
+                    break;
+                }
+
+                OriginalInformation = reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(
+                    reinterpret_cast<ULONG_PTR>(OriginalInformation)
+                    + OriginalInformation->NextEntryOffset);
+            }
+        }
     }
-    else
+
+    Mile::HResult hr = Mile::HResultFromLastError();
+    if (hr.GetCode() == ERROR_NO_MORE_FILES)
     {
-        Object->CurrentFileInfo = reinterpret_cast<PFILE_ID_BOTH_DIR_INFO>(
-            reinterpret_cast<ULONG_PTR>(Object->CurrentFileInfo)
-            + Object->CurrentFileInfo->NextEntryOffset);
+        hr = S_OK;
     }
 
-    if (Result)
-    {
-        PFILE_ID_BOTH_DIR_INFO CurrentFileInfo = Object->CurrentFileInfo;
-
-        FileEnumeratorInformation->CreationTime.dwLowDateTime =
-            CurrentFileInfo->CreationTime.LowPart;
-        FileEnumeratorInformation->CreationTime.dwHighDateTime =
-            CurrentFileInfo->CreationTime.HighPart;
-
-        FileEnumeratorInformation->LastAccessTime.dwLowDateTime =
-            CurrentFileInfo->LastAccessTime.LowPart;
-        FileEnumeratorInformation->LastAccessTime.dwHighDateTime =
-            CurrentFileInfo->LastAccessTime.HighPart;
-
-        FileEnumeratorInformation->LastWriteTime.dwLowDateTime =
-            CurrentFileInfo->LastWriteTime.LowPart;
-        FileEnumeratorInformation->LastWriteTime.dwHighDateTime =
-            CurrentFileInfo->LastWriteTime.HighPart;
-
-        FileEnumeratorInformation->ChangeTime.dwLowDateTime =
-            CurrentFileInfo->ChangeTime.LowPart;
-        FileEnumeratorInformation->ChangeTime.dwHighDateTime =
-            CurrentFileInfo->ChangeTime.HighPart;
-
-        FileEnumeratorInformation->FileSize =
-            CurrentFileInfo->EndOfFile.QuadPart;
-
-        FileEnumeratorInformation->AllocationSize =
-            CurrentFileInfo->AllocationSize.QuadPart;
-
-        FileEnumeratorInformation->FileAttributes =
-            CurrentFileInfo->FileAttributes;
-
-        FileEnumeratorInformation->EaSize =
-            CurrentFileInfo->EaSize;
-
-        FileEnumeratorInformation->FileId =
-            CurrentFileInfo->FileId;
-
-        ::StringCbCopyNW(
-            FileEnumeratorInformation->ShortName,
-            sizeof(FileEnumeratorInformation->ShortName),
-            CurrentFileInfo->ShortName,
-            CurrentFileInfo->ShortNameLength);
-
-        ::StringCbCopyNW(
-            FileEnumeratorInformation->FileName,
-            sizeof(FileEnumeratorInformation->FileName),
-            CurrentFileInfo->FileName,
-            CurrentFileInfo->FileNameLength);
-    }
-
-    Mile::CriticalSection::Leave(&Object->CriticalSection);
-
-    return Result;
+    return hr;
 }
 
 Mile::HResultFromLastError Mile::GetFileSize(
@@ -1579,7 +1597,8 @@ Mile::HResult Mile::RegQueryStringValue(
         &cbData));
     if (SUCCEEDED(hr))
     {
-        *lpData = reinterpret_cast<LPWSTR>(Mile::HeapMemory::Allocate(cbData));
+        *lpData = reinterpret_cast<LPWSTR>(Mile::HeapMemory::Allocate(
+            cbData * sizeof(wchar_t)));
         if (*lpData)
         {
             DWORD Type = 0;
@@ -1590,12 +1609,13 @@ Mile::HResult Mile::RegQueryStringValue(
                 &Type,
                 reinterpret_cast<LPBYTE>(*lpData),
                 &cbData));
-            if (SUCCEEDED(hr) && REG_SZ != Type)
+            if (SUCCEEDED(hr) && REG_SZ != Type && REG_EXPAND_SZ != Type)
                 hr = __HRESULT_FROM_WIN32(ERROR_ILLEGAL_ELEMENT_ADDRESS);
 
             if (FAILED(hr))
-                hr = Mile::HResultFromLastError(
-                    Mile::HeapMemory::Free(*lpData));
+            {
+                Mile::HeapMemory::Free(*lpData);
+            }
         }
         else
         {
@@ -1812,7 +1832,7 @@ Mile::HResultFromLastError Mile::LoadResource(
 #pragma region Implementations for Windows (C++ Style)
 
 std::wstring Mile::GetHResultMessage(
-    HResult const& Value)
+    Mile::HResult const& Value)
 {
     std::wstring Message{ L"Failed to get formatted message." };
 
@@ -1824,13 +1844,17 @@ std::wstring Mile::GetHResultMessage(
         FORMAT_MESSAGE_MAX_WIDTH_MASK,
         nullptr,
         Value,
-        MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+        0,
         reinterpret_cast<LPTSTR>(&RawMessage),
         0,
         nullptr);
     if (RawMessageSize)
     {
         Message = std::wstring(RawMessage, RawMessageSize);
+        if (Value.IsFailed())
+        {
+            Message += Mile::FormatUtf16String(L" (0x%08lX)", Value);
+        }
 
         ::LocalFree(RawMessage);
     }
@@ -1948,7 +1972,7 @@ std::wstring Mile::ExpandEnvironmentStringsW(
             SourceString.c_str(),
             &DestinationString[0],
             Length);
-        DestinationString.resize(Length);
+        DestinationString.resize(Length - 1);
     }
 
     return DestinationString;
@@ -1963,16 +1987,13 @@ std::wstring Mile::GetCurrentProcessModulePath()
     return Path;
 }
 
-std::wstring Mile::FormatString(
+std::wstring Mile::VFormatUtf16String(
     _In_z_ _Printf_format_string_ wchar_t const* const Format,
-    ...)
+    _In_z_ _Printf_format_string_ va_list ArgList)
 {
     // Check the argument list.
-    if (nullptr != Format)
+    if (Format)
     {
-        va_list ArgList = nullptr;
-        va_start(ArgList, Format);
-
         // Get the length of the format result.
         size_t nLength = static_cast<size_t>(_vscwprintf(Format, ArgList)) + 1;
 
@@ -1987,8 +2008,6 @@ std::wstring Mile::FormatString(
             Format,
             ArgList);
 
-        va_end(ArgList);
-
         if (nWritten > 0)
         {
             // If succeed, resize to fit and return result.
@@ -1999,6 +2018,135 @@ std::wstring Mile::FormatString(
 
     // If failed, return an empty string.
     return L"";
+}
+
+std::string Mile::VFormatUtf8String(
+    _In_z_ _Printf_format_string_ char const* const Format,
+    _In_z_ _Printf_format_string_ va_list ArgList)
+{
+    // Check the argument list.
+    if (Format)
+    {
+        // Get the length of the format result.
+        size_t nLength = static_cast<size_t>(_vscprintf(Format, ArgList)) + 1;
+
+        // Allocate for the format result.
+        std::string Buffer(nLength + 1, '\0');
+
+        // Format the string.
+        int nWritten = _vsnprintf_s(
+            &Buffer[0],
+            Buffer.size(),
+            nLength,
+            Format,
+            ArgList);
+
+        if (nWritten > 0)
+        {
+            // If succeed, resize to fit and return result.
+            Buffer.resize(nWritten);
+            return Buffer;
+        }
+    }
+
+    // If failed, return an empty string.
+    return "";
+}
+
+std::wstring Mile::FormatUtf16String(
+    _In_z_ _Printf_format_string_ wchar_t const* const Format,
+    ...)
+{
+    va_list ArgList;
+    va_start(ArgList, Format);
+    std::wstring Result = Mile::VFormatUtf16String(Format, ArgList);
+    va_end(ArgList);
+    return Result;
+}
+
+std::string Mile::FormatUtf8String(
+    _In_z_ _Printf_format_string_ char const* const Format,
+    ...)
+{
+    va_list ArgList;
+    va_start(ArgList, Format);
+    std::string Result = Mile::VFormatUtf8String(Format, ArgList);
+    va_end(ArgList);
+    return Result;
+}
+
+std::wstring Mile::ConvertByteSizeToUtf16String(
+    std::uint64_t ByteSize)
+{
+    const wchar_t* Systems[] =
+    {
+        L"Byte",
+        L"Bytes",
+        L"KiB",
+        L"MiB",
+        L"GiB",
+        L"TiB",
+        L"PiB",
+        L"EiB"
+    };
+
+    size_t nSystem = 0;
+    double result = static_cast<double>(ByteSize);
+
+    if (ByteSize > 1)
+    {
+        for (
+            nSystem = 1;
+            nSystem < sizeof(Systems) / sizeof(*Systems);
+            ++nSystem)
+        {
+            if (1024.0 > result)
+                break;
+
+            result /= 1024.0;
+        }
+
+        result = static_cast<uint64_t>(result * 100) / 100.0;
+    }
+
+    return Mile::FormatUtf16String(L"%.1lf %s", result, Systems[nSystem]);
+}
+
+std::string Mile::ConvertByteSizeToUtf8String(
+    std::uint64_t ByteSize)
+{
+    const wchar_t* Systems[] =
+    {
+        L"Byte",
+        L"Bytes",
+        L"KiB",
+        L"MiB",
+        L"GiB",
+        L"TiB",
+        L"PiB",
+        L"EiB"
+    };
+
+    size_t nSystem = 0;
+    double result = static_cast<double>(ByteSize);
+
+    if (ByteSize > 1)
+    {
+        for (
+            nSystem = 1;
+            nSystem < sizeof(Systems) / sizeof(*Systems);
+            ++nSystem)
+        {
+            if (1024.0 > result)
+                break;
+
+            result /= 1024.0;
+        }
+
+        result = static_cast<uint64_t>(result * 100) / 100.0;
+    }
+
+    return Mile::FormatUtf8String("%.1lf %s", result, Systems[nSystem]);
 }
 
 #pragma endregion
