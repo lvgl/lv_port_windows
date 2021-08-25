@@ -45,71 +45,6 @@
 #include <LVGL.Windows.Font.h>
 
 /**
- * @brief Creates a B8G8R8A8 frame buffer.
- * @param WindowHandle A handle to the window for the creation of the frame
- *                     buffer. If this value is nullptr, the entire screen will
- *                     be referenced.
- * @param Width The width of the frame buffer.
- * @param Height The height of the frame buffer.
- * @param PixelBuffer The raw pixel buffer of the frame buffer you created.
- * @param PixelBufferSize The size of the frame buffer you created.
- * @return If the function succeeds, the return value is a handle to the device
- *         context (DC) for the frame buffer. If the function fails, the return
- *         value is nullptr, and PixelBuffer parameter is nullptr.
-*/
-EXTERN_C HDC WINAPI LvglCreateFrameBuffer(
-    _In_opt_ HWND WindowHandle,
-    _In_ LONG Width,
-    _In_ LONG Height,
-    _Out_ UINT32** PixelBuffer,
-    _Out_ SIZE_T* PixelBufferSize)
-{
-    HDC hFrameBufferDC = nullptr;
-
-    if (PixelBuffer && PixelBufferSize)
-    {
-        HDC hWindowDC = ::GetDC(WindowHandle);
-        if (hWindowDC)
-        {
-            hFrameBufferDC = ::CreateCompatibleDC(hWindowDC);
-            ::ReleaseDC(WindowHandle, hWindowDC);
-        }
-
-        if (hFrameBufferDC)
-        {
-            BITMAPINFO BitmapInfo = { 0 };
-            BitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-            BitmapInfo.bmiHeader.biWidth = Width;
-            BitmapInfo.bmiHeader.biHeight = -Height;
-            BitmapInfo.bmiHeader.biPlanes = 1;
-            BitmapInfo.bmiHeader.biBitCount = 32;
-            BitmapInfo.bmiHeader.biCompression = BI_RGB;
-
-            HBITMAP hBitmap = ::CreateDIBSection(
-                hFrameBufferDC,
-                &BitmapInfo,
-                DIB_RGB_COLORS,
-                reinterpret_cast<void**>(PixelBuffer),
-                nullptr,
-                0);
-            if (hBitmap)
-            {
-                *PixelBufferSize = Width * Height * sizeof(UINT32);
-                ::DeleteObject(::SelectObject(hFrameBufferDC, hBitmap));
-                ::DeleteObject(hBitmap);
-            }
-            else
-            {
-                ::DeleteDC(hFrameBufferDC);
-                hFrameBufferDC = nullptr;
-            }
-        }
-    }
-
-    return hFrameBufferDC;
-}
-
-/**
  * @brief Returns the dots per inch (dpi) value for the associated window.
  * @param WindowHandle The window you want to get information about.
  * @return The DPI for the window.
@@ -251,10 +186,8 @@ static int volatile g_WindowWidth = 0;
 static int volatile g_WindowHeight = 0;
 static HWND g_WindowHandle = nullptr;
 static int volatile g_WindowDPI = USER_DEFAULT_SCREEN_DPI;
-
+static HDC g_WindowDCHandle = nullptr;
 static HDC g_BufferDCHandle = nullptr;
-static UINT32* g_PixelBuffer = nullptr;
-static SIZE_T g_PixelBufferSize = 0;
 
 static bool volatile g_MousePressed;
 static LPARAM volatile g_MouseValue = 0;
@@ -276,70 +209,47 @@ void LvglDisplayDriverFlushCallback(
     const lv_area_t* area,
     lv_color_t* color_p)
 {
-    UNREFERENCED_PARAMETER(area);
-    UNREFERENCED_PARAMETER(color_p);
+    lv_coord_t Width = ::lv_area_get_width(area);
+    lv_coord_t Height = ::lv_area_get_height(area);
+
+    BITMAPINFO BitmapInfo = { 0 };
+    BitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    BitmapInfo.bmiHeader.biWidth = Width;
+    BitmapInfo.bmiHeader.biHeight = -Height;
+    BitmapInfo.bmiHeader.biPlanes = 1;
+    BitmapInfo.bmiHeader.biBitCount = 32;
+    BitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    ::StretchDIBits(
+        g_BufferDCHandle,
+        area->x1,
+        area->y1,
+        Width,
+        Height,
+        0,
+        0,
+        Width,
+        Height,
+        color_p,
+        &BitmapInfo,
+        DIB_RGB_COLORS,
+        SRCCOPY);
 
     if (::lv_disp_flush_is_last(disp_drv))
     {
-        HDC hWindowDC = ::GetDC(g_WindowHandle);
-        if (hWindowDC)
-        {
-            ::BitBlt(
-                hWindowDC,
-                0,
-                0,
-                g_WindowWidth,
-                g_WindowHeight,
-                g_BufferDCHandle,
-                0,
-                0,
-                SRCCOPY);
-
-            ::ReleaseDC(g_WindowHandle, hWindowDC);
-        }
+        ::BitBlt(
+            g_WindowDCHandle,
+            0,
+            0,
+            g_WindowWidth,
+            g_WindowHeight,
+            g_BufferDCHandle,
+            0,
+            0,
+            SRCCOPY);
     }
 
     ::lv_disp_flush_ready(disp_drv);
-}
-
-void LvglDisplayDriverRounderCallback(
-    lv_disp_drv_t* disp_drv,
-    lv_area_t* area)
-{
-    area->x1 = 0;
-    area->x2 = disp_drv->hor_res - 1;
-    area->y1 = 0;
-    area->y2 = disp_drv->ver_res - 1;
-}
-
-void LvglCreateDisplayDriver(
-    lv_disp_drv_t* disp_drv,
-    int hor_res,
-    int ver_res)
-{
-    HDC hNewBufferDC = ::LvglCreateFrameBuffer(
-        g_WindowHandle,
-        hor_res,
-        ver_res,
-        &g_PixelBuffer,
-        &g_PixelBufferSize);
-
-    ::DeleteDC(g_BufferDCHandle);
-    g_BufferDCHandle = hNewBufferDC;
-    
-    lv_disp_draw_buf_t* disp_buf = new lv_disp_draw_buf_t();
-    ::lv_disp_draw_buf_init(
-        disp_buf,
-        g_PixelBuffer,
-        nullptr,
-        hor_res * ver_res);
-
-    disp_drv->hor_res = static_cast<lv_coord_t>(hor_res);
-    disp_drv->ver_res = static_cast<lv_coord_t>(ver_res);
-    disp_drv->flush_cb = ::LvglDisplayDriverFlushCallback;
-    disp_drv->draw_buf = disp_buf;
-    disp_drv->dpi = g_WindowDPI;
-    disp_drv->rounder_cb = ::LvglDisplayDriverRounderCallback;
 }
 
 void LvglMouseDriverReadCallback(
@@ -390,6 +300,28 @@ void LvglMousewheelDriverReadCallback(
     g_MouseWheelValue = 0;
 }
 
+void LvglUpdateBufferBitmap()
+{
+    if (!g_BufferDCHandle)
+    {
+        g_BufferDCHandle = ::CreateCompatibleDC(g_WindowDCHandle);
+        if (!g_BufferDCHandle)
+        {
+            return;
+        }
+    }
+
+    HBITMAP BufferBitmapHandle = ::CreateCompatibleBitmap(
+        g_WindowDCHandle,
+        g_WindowWidth,
+        g_WindowHeight);
+    if (BufferBitmapHandle)
+    {
+        ::DeleteObject(::SelectObject(g_BufferDCHandle, BufferBitmapHandle));
+        ::DeleteObject(BufferBitmapHandle);
+    }
+}
+
 LRESULT CALLBACK WndProc(
     _In_ HWND   hWnd,
     _In_ UINT   uMsg,
@@ -405,6 +337,10 @@ LRESULT CALLBACK WndProc(
 
         g_WindowWidth = WindowRect.right - WindowRect.left;
         g_WindowHeight = WindowRect.bottom - WindowRect.top;
+
+        g_WindowDCHandle = ::GetDC(hWnd);
+
+        ::LvglUpdateBufferBitmap();
 
         return 0;
     }
@@ -744,7 +680,18 @@ bool LvglWindowsInitialize(
 
     static lv_disp_drv_t disp_drv;
     ::lv_disp_drv_init(&disp_drv);
-    ::LvglCreateDisplayDriver(&disp_drv, g_WindowWidth, g_WindowHeight);
+    static lv_color_t raw_disp_buf[65536];
+    lv_disp_draw_buf_t* disp_buf = new lv_disp_draw_buf_t();
+    ::lv_disp_draw_buf_init(
+        disp_buf,
+        raw_disp_buf,
+        nullptr,
+        65536);
+    disp_drv.hor_res = static_cast<lv_coord_t>(g_WindowWidth);
+    disp_drv.ver_res = static_cast<lv_coord_t>(g_WindowHeight);
+    disp_drv.flush_cb = ::LvglDisplayDriverFlushCallback;
+    disp_drv.draw_buf = disp_buf;
+    disp_drv.dpi = g_WindowDPI;
     ::lv_disp_drv_register(&disp_drv);
 
     g_DefaultGroup = ::lv_group_create();
@@ -789,10 +736,14 @@ void LvglTaskSchedulerLoop()
             lv_disp_t* CurrentDisplay = ::lv_disp_get_default();
             if (CurrentDisplay)
             {
-                ::LvglCreateDisplayDriver(
-                    CurrentDisplay->driver,
-                    g_WindowWidth,
-                    g_WindowHeight);
+                ::LvglUpdateBufferBitmap();
+
+                CurrentDisplay->driver->hor_res =
+                    static_cast<lv_coord_t>(g_WindowWidth);
+                CurrentDisplay->driver->ver_res =
+                    static_cast<lv_coord_t>(g_WindowHeight);
+                CurrentDisplay->driver->dpi = g_WindowDPI;
+
                 ::lv_disp_drv_update(
                     CurrentDisplay,
                     CurrentDisplay->driver);
