@@ -32,9 +32,6 @@
     <ClCompile Include="LVGL.Windows.Font.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lv_demo_conf.h" />
-  </ItemGroup>
-  <ItemGroup>
     <None Include="LVGL.Windows.props" />
   </ItemGroup>
   <ItemGroup>
