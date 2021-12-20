@@ -19,8 +19,7 @@
       <Optimization Condition="'$(Configuration)'=='Release'">MinSpace</Optimization>
     </ClCompile>
   </ItemDefinitionGroup>
-  <Import Project="LVGL.Core.vcxitems" />
-  <Import Project="LVGL.Demonstrations.vcxitems" />
+  <Import Project="LVGL.Portable.vcxitems" />
   <ItemGroup>
     <ClInclude Include="LVGL.Resource.FontAwesome5Free.h" />
     <ClInclude Include="LVGL.Resource.FontAwesome5FreeLVGL.h" />

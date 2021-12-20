@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="LVGL.Core.vcxitems.filters" />
-  <Import Project="LVGL.Demonstrations.vcxitems.filters" />
+  <Import Project="LVGL.Portable.vcxitems.filters" />
   <ItemGroup>
     <ClInclude Include="lv_conf.h" />
     <ClInclude Include="LVGL.Resource.FontAwesome5Free.h">
