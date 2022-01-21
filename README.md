@@ -90,7 +90,7 @@ with a second command. Both commands are shown below.
 
 ```
 git clone https://github.com/lvgl/lv_port_windows.git
-cd lv_sim_visual_studio
+cd lv_port_windows
 git submodule update --init --recursive
 ```
 
