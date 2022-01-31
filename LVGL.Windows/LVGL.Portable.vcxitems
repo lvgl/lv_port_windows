@@ -591,6 +591,8 @@
     <ClCompile Include="lvgl\tests\src\test_cases\test_bar.c" />
     <ClCompile Include="lvgl\tests\src\test_cases\test_checkbox.c" />
     <ClCompile Include="lvgl\tests\src\test_cases\test_config.c" />
+    <ClCompile Include="lvgl\tests\src\test_cases\test_demo_stress.c" />
+    <ClCompile Include="lvgl\tests\src\test_cases\test_demo_widgets.c" />
     <ClCompile Include="lvgl\tests\src\test_cases\test_dropdown.c" />
     <ClCompile Include="lvgl\tests\src\test_cases\test_event.c" />
     <ClCompile Include="lvgl\tests\src\test_cases\test_font_loader.c" />
@@ -793,11 +795,12 @@
     <None Include="lvgl\env_support\cmake\micropython.cmake" />
     <None Include="lvgl\env_support\cmake\zephyr.cmake" />
     <None Include="lvgl\env_support\cmsis-pack\gen_pack.sh" />
-    <None Include="lvgl\env_support\cmsis-pack\LVGL.lvgl.0.8.4.pack" />
+    <None Include="lvgl\env_support\cmsis-pack\LVGL.lvgl.1.0.0.pack" />
     <None Include="lvgl\env_support\cmsis-pack\LVGL.lvgl.pdsc" />
     <None Include="lvgl\env_support\cmsis-pack\lv_cmsis_pack.txt" />
     <None Include="lvgl\env_support\cmsis-pack\README.md" />
     <None Include="lvgl\env_support\rt-thread\SConscript" />
+    <None Include="lvgl\env_support\zephyr\module.yml" />
     <None Include="lvgl\examples\anim\index.rst" />
     <None Include="lvgl\examples\anim\lv_example_anim_1.py" />
     <None Include="lvgl\examples\anim\lv_example_anim_2.py" />
@@ -1070,7 +1073,6 @@
     <None Include="lvgl\tests\config.yml" />
     <None Include="lvgl\tests\main.py" />
     <None Include="lvgl\tests\README.md" />
-    <None Include="lvgl\zephyr\module.yml" />
     <None Include="lvgl\.codecov.yml" />
     <None Include="lvgl\.editorconfig" />
     <None Include="lvgl\.git" />
