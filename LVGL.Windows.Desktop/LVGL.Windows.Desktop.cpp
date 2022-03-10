@@ -312,6 +312,75 @@ void LvglDisplayDriverRounderCallback(
     area->y2 = disp_drv->ver_res - 1;
 }
 
+#include <lvgl/src/draw/sw/lv_draw_sw.h>
+
+typedef lv_draw_sw_ctx_t LvglWindowsGdiRendererContext;
+
+void LvglWindowsGdiRendererBlendCallback(
+    lv_draw_ctx_t* draw_ctx,
+    const lv_draw_sw_blend_dsc_t* dsc)
+{
+    // Let's get the blend area which is the intersection of the area to fill
+    // and the clip area.
+    lv_area_t blend_area;
+    if (!_lv_area_intersect(&blend_area, dsc->blend_area, draw_ctx->clip_area))
+    {
+        return;
+    }
+
+    if (dsc->src_buf == nullptr &&
+        dsc->mask_buf == nullptr &&
+        dsc->opa >= LV_OPA_MAX &&
+        dsc->blend_mode == LV_BLEND_MODE_NORMAL)
+    {
+        // Fill only non masked, fully opaque, normal blended and not too small
+        // areas.
+
+        HBRUSH Brush = CreateSolidBrush(RGB(
+            dsc->color.ch.red,
+            dsc->color.ch.green,
+            dsc->color.ch.blue));
+        if (Brush)
+        {
+            RECT RenderArea;
+            RenderArea.left = blend_area.x1;
+            RenderArea.top = blend_area.y1;
+            RenderArea.right = blend_area.x2 + 1;
+            RenderArea.bottom = blend_area.y2 + 1;
+            ::FillRect(g_BufferDCHandle, &RenderArea, Brush);
+            DeleteObject(Brush);
+        }
+    }
+    else
+    {
+        // Fallback: The GPU doesn't support these settings. Call the Software
+        // Renderer.
+        ::lv_draw_sw_blend_basic(draw_ctx, dsc);
+    }
+}
+
+void LvglWindowsGdiRendererBaseDrawWaitForFinishCallback(
+    lv_draw_ctx_t* draw_ctx)
+{
+    ::lv_draw_sw_wait_for_finish(draw_ctx);
+}
+
+void LvglWindowsGdiRendererInitialize(
+    lv_disp_drv_t* drv,
+    lv_draw_ctx_t* draw_ctx)
+{
+    // Initialize the LVGL Software Renderer
+    ::lv_draw_sw_init_ctx(drv, draw_ctx);
+
+    LvglWindowsGdiRendererContext* RendererContext =
+        reinterpret_cast<LvglWindowsGdiRendererContext*>(draw_ctx);
+
+    RendererContext->blend =
+        LvglWindowsGdiRendererBlendCallback;
+    RendererContext->base_draw.wait_for_finish =
+        LvglWindowsGdiRendererBaseDrawWaitForFinishCallback;
+}
+
 void LvglCreateDisplayDriver(
     lv_disp_drv_t* disp_drv,
     int hor_res,
@@ -340,6 +409,8 @@ void LvglCreateDisplayDriver(
     disp_drv->draw_buf = disp_buf;
     disp_drv->dpi = g_WindowDPI;
     disp_drv->rounder_cb = ::LvglDisplayDriverRounderCallback;
+    disp_drv->draw_ctx_init = LvglWindowsGdiRendererInitialize;
+    disp_drv->draw_ctx_size = sizeof(LvglWindowsGdiRendererContext);
 }
 
 void LvglMouseDriverReadCallback(
