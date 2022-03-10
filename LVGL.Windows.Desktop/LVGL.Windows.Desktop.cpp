@@ -251,6 +251,7 @@ static int volatile g_WindowWidth = 0;
 static int volatile g_WindowHeight = 0;
 static HWND g_WindowHandle = nullptr;
 static int volatile g_WindowDPI = USER_DEFAULT_SCREEN_DPI;
+static HDC g_WindowDCHandle = nullptr;
 
 static HDC g_BufferDCHandle = nullptr;
 static UINT32* g_PixelBuffer = nullptr;
@@ -276,45 +277,33 @@ void LvglDisplayDriverFlushCallback(
     const lv_area_t* area,
     lv_color_t* color_p)
 {
-    UNREFERENCED_PARAMETER(area);
     UNREFERENCED_PARAMETER(color_p);
 
     if (::lv_disp_flush_is_last(disp_drv))
     {
-        HDC hWindowDC = ::GetDC(g_WindowHandle);
-        if (hWindowDC)
-        {
-            ::BitBlt(
-                hWindowDC,
-                0,
-                0,
-                g_WindowWidth,
-                g_WindowHeight,
-                g_BufferDCHandle,
-                0,
-                0,
-                SRCCOPY);
+        lv_coord_t Width = ::lv_area_get_width(area);
+        lv_coord_t Height = ::lv_area_get_height(area);
 
-            ::ReleaseDC(g_WindowHandle, hWindowDC);
-        }
+        ::BitBlt(
+            g_WindowDCHandle,
+            area->x1,
+            area->y1,
+            Width,
+            Height,
+            g_BufferDCHandle,
+            area->x1,
+            area->y1,
+            SRCCOPY);
     }
 
     ::lv_disp_flush_ready(disp_drv);
 }
 
-void LvglDisplayDriverRounderCallback(
-    lv_disp_drv_t* disp_drv,
-    lv_area_t* area)
-{
-    area->x1 = 0;
-    area->x2 = disp_drv->hor_res - 1;
-    area->y1 = 0;
-    area->y2 = disp_drv->ver_res - 1;
-}
-
 #include <lvgl/src/draw/sw/lv_draw_sw.h>
 
 typedef lv_draw_sw_ctx_t LvglWindowsGdiRendererContext;
+
+std::map<std::uint32_t, HBRUSH> g_SolidBrushCache;
 
 void LvglWindowsGdiRendererBlendCallback(
     lv_draw_ctx_t* draw_ctx,
@@ -336,10 +325,27 @@ void LvglWindowsGdiRendererBlendCallback(
         // Fill only non masked, fully opaque, normal blended and not too small
         // areas.
 
-        HBRUSH Brush = CreateSolidBrush(RGB(
-            dsc->color.ch.red,
-            dsc->color.ch.green,
-            dsc->color.ch.blue));
+        HBRUSH Brush = nullptr;
+        {
+            std::uint32_t Index = ::lv_color_to32(dsc->color);
+            auto Iterator = g_SolidBrushCache.find(Index);
+            if (Iterator != g_SolidBrushCache.end())
+            {
+                Brush = Iterator->second;
+            }
+            else
+            {
+                Brush = ::CreateSolidBrush(RGB(
+                    LV_COLOR_GET_R(dsc->color),
+                    LV_COLOR_GET_G(dsc->color),
+                    LV_COLOR_GET_B(dsc->color)));
+                if (Brush)
+                {
+                    g_SolidBrushCache.emplace(std::make_pair(Index, Brush));
+                }
+            }
+        }
+
         if (Brush)
         {
             RECT RenderArea;
@@ -348,7 +354,6 @@ void LvglWindowsGdiRendererBlendCallback(
             RenderArea.right = blend_area.x2 + 1;
             RenderArea.bottom = blend_area.y2 + 1;
             ::FillRect(g_BufferDCHandle, &RenderArea, Brush);
-            DeleteObject(Brush);
         }
     }
     else
@@ -408,7 +413,7 @@ void LvglCreateDisplayDriver(
     disp_drv->flush_cb = ::LvglDisplayDriverFlushCallback;
     disp_drv->draw_buf = disp_buf;
     disp_drv->dpi = g_WindowDPI;
-    disp_drv->rounder_cb = ::LvglDisplayDriverRounderCallback;
+    disp_drv->direct_mode = 1;
     disp_drv->draw_ctx_init = LvglWindowsGdiRendererInitialize;
     disp_drv->draw_ctx_size = sizeof(LvglWindowsGdiRendererContext);
 }
@@ -476,6 +481,8 @@ LRESULT CALLBACK WndProc(
 
         g_WindowWidth = WindowRect.right - WindowRect.left;
         g_WindowHeight = WindowRect.bottom - WindowRect.top;
+
+        g_WindowDCHandle = ::GetDC(hWnd);
 
         return 0;
     }
