@@ -1,17 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31005.135
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32505.173
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LVGL.Windows", "LVGL.Windows\LVGL.Windows.vcxproj", "{AAE3B2DC-AEFC-49B0-89F9-9675CE3A0EAA}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LVGL.Windows.Desktop", "LVGL.Windows.Desktop\LVGL.Windows.Desktop.vcxproj", "{3CA6E070-4AC1-475E-BB17-CF29AE4806DF}"
 	ProjectSection(ProjectDependencies) = postProject
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE} = {84E27A16-CBC7-466C-971F-2A4E0F2F95BE}
 		{AAE3B2DC-AEFC-49B0-89F9-9675CE3A0EAA} = {AAE3B2DC-AEFC-49B0-89F9-9675CE3A0EAA}
 	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mile.Library", "Mile.Cpp\Mile.Library\Mile.Library.vcxproj", "{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,18 +44,6 @@ Global
 		{3CA6E070-4AC1-475E-BB17-CF29AE4806DF}.Release|x64.Build.0 = Release|x64
 		{3CA6E070-4AC1-475E-BB17-CF29AE4806DF}.Release|x86.ActiveCfg = Release|Win32
 		{3CA6E070-4AC1-475E-BB17-CF29AE4806DF}.Release|x86.Build.0 = Release|Win32
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Debug|ARM64.ActiveCfg = Debug|ARM64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Debug|ARM64.Build.0 = Debug|ARM64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Debug|x64.ActiveCfg = Debug|x64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Debug|x64.Build.0 = Debug|x64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Debug|x86.ActiveCfg = Debug|Win32
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Debug|x86.Build.0 = Debug|Win32
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Release|ARM64.ActiveCfg = Release|ARM64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Release|ARM64.Build.0 = Release|ARM64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Release|x64.ActiveCfg = Release|x64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Release|x64.Build.0 = Release|x64
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Release|x86.ActiveCfg = Release|Win32
-		{84E27A16-CBC7-466C-971F-2A4E0F2F95BE}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

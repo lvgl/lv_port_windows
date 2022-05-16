@@ -8,8 +8,6 @@
  * DEVELOPER: Mouri_Naruto (Mouri_Naruto AT Outlook.com)
  */
 
-#include "Mile.Windows.h"
-
 #include <Windows.h>
 #include <windowsx.h>
 
@@ -119,15 +117,40 @@ EXTERN_C UINT WINAPI LvglGetDpiForWindow(
 {
     UINT Result = static_cast<UINT>(-1);
 
-    UINT dpiX = 0;
-    UINT dpiY = 0;
-    if (Mile::GetDpiForMonitor(
-        ::MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST),
-        MONITOR_DPI_TYPE::MDT_EFFECTIVE_DPI,
-        &dpiX,
-        &dpiY).IsSucceeded())
+    HMODULE ModuleHandle = ::LoadLibraryW(L"SHCore.dll");
+    if (ModuleHandle)
     {
-        Result = dpiX;
+        typedef enum MONITOR_DPI_TYPE_PRIVATE {
+            MDT_EFFECTIVE_DPI = 0,
+            MDT_ANGULAR_DPI = 1,
+            MDT_RAW_DPI = 2,
+            MDT_DEFAULT = MDT_EFFECTIVE_DPI
+        } MONITOR_DPI_TYPE_PRIVATE;
+
+        typedef HRESULT(WINAPI* FunctionType)(
+            HMONITOR, MONITOR_DPI_TYPE_PRIVATE, UINT*, UINT*);
+
+        FunctionType pFunction = reinterpret_cast<FunctionType>(
+            ::GetProcAddress(ModuleHandle, "GetDpiForMonitor"));
+        if (pFunction)
+        {
+            HMONITOR MonitorHandle = ::MonitorFromWindow(
+                WindowHandle,
+                MONITOR_DEFAULTTONEAREST);
+
+            UINT dpiX = 0;
+            UINT dpiY = 0;
+            if (SUCCEEDED(pFunction(
+                MonitorHandle,
+                MDT_EFFECTIVE_DPI,
+                &dpiX,
+                &dpiY)))
+            {
+                Result = dpiX;
+            }
+        }
+
+        FreeLibrary(ModuleHandle);
     }
 
     if (Result == static_cast<UINT>(-1))
@@ -146,6 +169,51 @@ EXTERN_C UINT WINAPI LvglGetDpiForWindow(
     }
 
     return Result;
+}
+
+EXTERN_C BOOL WINAPI LvglEnableChildWindowDpiMessage(
+    HWND WindowHandle)
+{
+    // This hack is only for Windows 10 TH1/TH2 only.
+    // We don't need this hack if the Per Monitor Aware V2 is existed.
+    OSVERSIONINFOEXW OSVersionInfoEx = { 0 };
+    OSVersionInfoEx.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXW);
+    OSVersionInfoEx.dwMajorVersion = 10;
+    OSVersionInfoEx.dwMinorVersion = 0;
+    OSVersionInfoEx.dwBuildNumber = 14393;
+    if (!::VerifyVersionInfoW(
+        &OSVersionInfoEx,
+        VER_MAJORVERSION | VER_MINORVERSION | VER_BUILDNUMBER,
+        ::VerSetConditionMask(
+            ::VerSetConditionMask(
+                ::VerSetConditionMask(
+                    0,
+                    VER_MAJORVERSION,
+                    VER_GREATER_EQUAL),
+                VER_MINORVERSION,
+                VER_GREATER_EQUAL),
+            VER_BUILDNUMBER,
+            VER_LESS)))
+    {
+        return FALSE;
+    }
+
+    HMODULE ModuleHandle = ::GetModuleHandleW(L"user32.dll");
+    if (!ModuleHandle)
+    {
+        return FALSE;
+    }
+
+    typedef BOOL(WINAPI* FunctionType)(HWND, BOOL);
+
+    FunctionType pFunction = reinterpret_cast<FunctionType>(
+        ::GetProcAddress(ModuleHandle, "EnableChildWindowDpiMessage"));
+    if (!pFunction)
+    {
+        return FALSE;
+    }
+
+    return pFunction(WindowHandle, TRUE);
 }
 
 /**
@@ -355,6 +423,37 @@ void LvglWindowsGdiRendererBlendCallback(
             RenderArea.bottom = blend_area.y2 + 1;
             ::FillRect(g_BufferDCHandle, &RenderArea, Brush);
         }
+    }
+    else if (dsc->src_buf != nullptr &&
+        dsc->mask_buf == nullptr &&
+        dsc->opa >= LV_OPA_MAX &&
+        dsc->blend_mode == LV_BLEND_MODE_NORMAL)
+    {
+        lv_coord_t Width = ::lv_area_get_width(&blend_area);
+        lv_coord_t Height = ::lv_area_get_height(&blend_area);
+
+        BITMAPINFO BitmapInfo = { 0 };
+        BitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        BitmapInfo.bmiHeader.biWidth = Width;
+        BitmapInfo.bmiHeader.biHeight = -Height;
+        BitmapInfo.bmiHeader.biPlanes = 1;
+        BitmapInfo.bmiHeader.biBitCount = 32;
+        BitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+        ::StretchDIBits(
+            g_BufferDCHandle,
+            blend_area.x1,
+            blend_area.y1,
+            Width,
+            Height,
+            0,
+            0,
+            Width,
+            Height,
+            dsc->src_buf,
+            &BitmapInfo,
+            DIB_RGB_COLORS,
+            SRCCOPY);
     }
     else
     {
@@ -817,7 +916,7 @@ bool LvglWindowsInitialize(
 
     ::LvglRegisterTouchWindow(g_WindowHandle, 0);
 
-    Mile::EnableChildWindowDpiMessage(g_WindowHandle);
+    ::LvglEnableChildWindowDpiMessage(g_WindowHandle);
     g_WindowDPI = ::LvglGetDpiForWindow(g_WindowHandle);
 
     static lv_disp_drv_t disp_drv;
