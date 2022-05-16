@@ -535,7 +535,7 @@ void LvglKeyboardDriverReadCallback(
 {
     UNREFERENCED_PARAMETER(indev_drv);
 
-    std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
+    std::lock_guard<std::mutex> KeyboardMutexGuard(g_KeyboardMutex);
 
     if (!g_KeyQueue.empty())
     {
@@ -605,7 +605,7 @@ LRESULT CALLBACK WndProc(
     case WM_KEYDOWN:
     case WM_KEYUP:
     {
-        std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
+        std::lock_guard<std::mutex> KeyboardMutexGuard(g_KeyboardMutex);
 
         bool SkipTranslation = false;
         std::uint32_t TranslatedKey = 0;
@@ -667,7 +667,7 @@ LRESULT CALLBACK WndProc(
     }
     case WM_CHAR:
     {
-        std::lock_guard KeyboardMutexGuard(g_KeyboardMutex);
+        std::lock_guard<std::mutex> KeyboardMutexGuard(g_KeyboardMutex);
 
         uint16_t RawCodePoint = static_cast<std::uint16_t>(wParam);
 
