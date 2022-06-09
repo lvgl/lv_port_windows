@@ -150,7 +150,7 @@ EXTERN_C UINT WINAPI LvglGetDpiForWindow(
             }
         }
 
-        FreeLibrary(ModuleHandle);
+        ::FreeLibrary(ModuleHandle);
     }
 
     if (Result == static_cast<UINT>(-1))
@@ -234,15 +234,15 @@ EXTERN_C BOOL WINAPI LvglRegisterTouchWindow(
         return FALSE;
     }
 
-    decltype(::RegisterTouchWindow)* pRegisterTouchWindow =
+    decltype(::RegisterTouchWindow)* pFunction =
         reinterpret_cast<decltype(::RegisterTouchWindow)*>(
             ::GetProcAddress(ModuleHandle, "RegisterTouchWindow"));
-    if (!pRegisterTouchWindow)
+    if (!pFunction)
     {
         return FALSE;
     }
 
-    return pRegisterTouchWindow(hWnd, ulFlags);
+    return pFunction(hWnd, ulFlags);
 }
 
 /**
@@ -271,15 +271,15 @@ EXTERN_C BOOL WINAPI LvglGetTouchInputInfo(
         return FALSE;
     }
 
-    decltype(::GetTouchInputInfo)* pGetTouchInputInfo =
+    decltype(::GetTouchInputInfo)* pFunction =
         reinterpret_cast<decltype(::GetTouchInputInfo)*>(
             ::GetProcAddress(ModuleHandle, "GetTouchInputInfo"));
-    if (!pGetTouchInputInfo)
+    if (!pFunction)
     {
         return FALSE;
     }
 
-    return pGetTouchInputInfo(hTouchInput, cInputs, pInputs, cbSize);
+    return pFunction(hTouchInput, cInputs, pInputs, cbSize);
 }
 
 /**
@@ -300,15 +300,15 @@ EXTERN_C BOOL WINAPI LvglCloseTouchInputHandle(
         return FALSE;
     }
 
-    decltype(::CloseTouchInputHandle)* pCloseTouchInputHandle =
+    decltype(::CloseTouchInputHandle)* pFunction =
         reinterpret_cast<decltype(::CloseTouchInputHandle)*>(
             ::GetProcAddress(ModuleHandle, "CloseTouchInputHandle"));
-    if (!pCloseTouchInputHandle)
+    if (!pFunction)
     {
         return FALSE;
     }
 
-    return pCloseTouchInputHandle(hTouchInput);
+    return pFunction(hTouchInput);
 }
 
 
