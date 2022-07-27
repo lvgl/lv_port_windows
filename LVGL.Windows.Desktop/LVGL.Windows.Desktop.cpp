@@ -510,6 +510,8 @@ void LvglCreateDisplayDriver(
     disp_drv->hor_res = static_cast<lv_coord_t>(hor_res);
     disp_drv->ver_res = static_cast<lv_coord_t>(ver_res);
     disp_drv->flush_cb = ::LvglDisplayDriverFlushCallback;
+    if (disp_drv->draw_buf != NULL)
+        delete disp_drv->draw_buf;
     disp_drv->draw_buf = disp_buf;
     disp_drv->dpi = g_WindowDPI;
     disp_drv->direct_mode = 1;
