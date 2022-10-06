@@ -385,10 +385,46 @@ void LvglWindowsGdiRendererBlendCallback(
         return;
     }
 
-    if (dsc->src_buf == nullptr &&
+    // Fallback: The GPU doesn't support these settings. Call the Software
+    // Renderer.
+    if (!(
         dsc->mask_buf == nullptr &&
         dsc->opa >= LV_OPA_MAX &&
-        dsc->blend_mode == LV_BLEND_MODE_NORMAL)
+        dsc->blend_mode == LV_BLEND_MODE_NORMAL))
+    {
+        ::lv_draw_sw_blend_basic(draw_ctx, dsc);
+        return;
+    }
+
+    if (dsc->src_buf)
+    {
+        lv_coord_t Width = ::lv_area_get_width(&blend_area);
+        lv_coord_t Height = ::lv_area_get_height(&blend_area);
+
+        BITMAPINFO BitmapInfo = { 0 };
+        BitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        BitmapInfo.bmiHeader.biWidth = Width;
+        BitmapInfo.bmiHeader.biHeight = -Height;
+        BitmapInfo.bmiHeader.biPlanes = 1;
+        BitmapInfo.bmiHeader.biBitCount = 32;
+        BitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+        ::StretchDIBits(
+            g_BufferDCHandle,
+            blend_area.x1,
+            blend_area.y1,
+            Width,
+            Height,
+            0,
+            0,
+            Width,
+            Height,
+            dsc->src_buf,
+            &BitmapInfo,
+            DIB_RGB_COLORS,
+            SRCCOPY);
+    }
+    else
     {
         // Fill only non masked, fully opaque, normal blended and not too small
         // areas.
@@ -423,43 +459,6 @@ void LvglWindowsGdiRendererBlendCallback(
             RenderArea.bottom = blend_area.y2 + 1;
             ::FillRect(g_BufferDCHandle, &RenderArea, Brush);
         }
-    }
-    else if (dsc->src_buf != nullptr &&
-        dsc->mask_buf == nullptr &&
-        dsc->opa >= LV_OPA_MAX &&
-        dsc->blend_mode == LV_BLEND_MODE_NORMAL)
-    {
-        lv_coord_t Width = ::lv_area_get_width(&blend_area);
-        lv_coord_t Height = ::lv_area_get_height(&blend_area);
-
-        BITMAPINFO BitmapInfo = { 0 };
-        BitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-        BitmapInfo.bmiHeader.biWidth = Width;
-        BitmapInfo.bmiHeader.biHeight = -Height;
-        BitmapInfo.bmiHeader.biPlanes = 1;
-        BitmapInfo.bmiHeader.biBitCount = 32;
-        BitmapInfo.bmiHeader.biCompression = BI_RGB;
-
-        ::StretchDIBits(
-            g_BufferDCHandle,
-            blend_area.x1,
-            blend_area.y1,
-            Width,
-            Height,
-            0,
-            0,
-            Width,
-            Height,
-            dsc->src_buf,
-            &BitmapInfo,
-            DIB_RGB_COLORS,
-            SRCCOPY);
-    }
-    else
-    {
-        // Fallback: The GPU doesn't support these settings. Call the Software
-        // Renderer.
-        ::lv_draw_sw_blend_basic(draw_ctx, dsc);
     }
 }
 
