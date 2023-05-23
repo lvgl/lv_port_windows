@@ -1,5 +1,11 @@
 ﻿# LVGL ported to Windows
 
+**Warning**
+
+**This repository is deprecated due to all implementations had been migrated.**
+
+**Please go to https://github.com/lvgl/lv_port_pc_visual_studio.**
+
 ![Preview](Preview.gif)
 
 ## Introduction
